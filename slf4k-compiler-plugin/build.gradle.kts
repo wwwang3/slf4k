@@ -1,5 +1,6 @@
 plugins {
     id("kotlin-convention")
+    id("publish-convention")
 }
 
 description = "Kotlin compiler plugin for generating slf4j loggers from @Slf4K"
