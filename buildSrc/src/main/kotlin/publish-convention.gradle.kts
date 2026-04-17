@@ -21,8 +21,11 @@ publishing {
 
 mavenPublishing {
     signAllPublications()
-    println("info: ${project.group}:${project.name}:${project.version}")
-    coordinates(project.group.toString(), project.name, project.version.toString())
+    // 默认坐标即 project.group:project.name:project.version；不在此处急切捕获，
+    // 以便子项目（例如 slf4k-compiler-plugin）在 plugins 块之后覆盖 version。
+    afterEvaluate {
+        println("info: ${project.group}:${project.name}:${project.version}")
+    }
 
     pom {
         name = project.name

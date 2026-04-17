@@ -19,8 +19,11 @@ val generatePluginCoordinates by tasks.registering {
     val outDir = layout.buildDirectory.dir("generated/sources/slf4k-coordinates/kotlin")
     val groupValue = project.group.toString()
     val versionValue = project.version.toString()
+    // compiler-plugin 用 KEFS 坐标规则发布：<kotlinVersion>-<slf4kVersion>
+    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$versionValue"
     inputs.property("group", groupValue)
     inputs.property("version", versionValue)
+    inputs.property("compilerPluginVersion", compilerPluginVersionValue)
     outputs.dir(outDir)
     doLast {
         val file = outDir.get().file("top/wang3/slf4k/gradle/Slf4kPluginCoordinates.kt").asFile
@@ -32,6 +35,7 @@ val generatePluginCoordinates by tasks.registering {
             internal object Slf4kPluginCoordinates {
                 const val GROUP = "$groupValue"
                 const val VERSION = "$versionValue"
+                const val COMPILER_PLUGIN_VERSION = "$compilerPluginVersionValue"
             }
             """.trimIndent() + "\n"
         )
@@ -82,6 +86,8 @@ val installTestArtifacts by tasks.registering {
     outputs.dir(testMavenRepo)
     val groupValue = project.group.toString()
     val versionValue = project.version.toString()
+    // compiler-plugin 走 KEFS 坐标：<kotlinVersion>-<slf4kVersion>
+    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$versionValue"
     val repoDirProvider = testMavenRepo
     val annotationsJarProvider = annotationsJarTask.flatMap { it.archiveFile }
     val compilerJarProvider = compilerPluginJarTask.flatMap { it.archiveFile }
@@ -99,7 +105,7 @@ val installTestArtifacts by tasks.registering {
             repoDir = repoDir,
             groupId = groupValue,
             artifactId = "slf4k-compiler-plugin",
-            version = versionValue,
+            version = compilerPluginVersionValue,
             jarFile = compilerJarProvider.get().asFile,
         )
         installArtifact(
@@ -108,7 +114,7 @@ val installTestArtifacts by tasks.registering {
             artifactId = "slf4k-gradle-plugin",
             version = versionValue,
             jarFile = gradlePluginJarProvider.get().asFile,
-            runtimeDependencies = listOf(Triple(groupValue, "slf4k-compiler-plugin", versionValue)),
+            runtimeDependencies = listOf(Triple(groupValue, "slf4k-compiler-plugin", compilerPluginVersionValue)),
         )
         installPluginMarker(
             repoDir = repoDir,

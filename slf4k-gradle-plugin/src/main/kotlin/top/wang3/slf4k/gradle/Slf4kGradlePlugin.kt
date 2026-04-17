@@ -25,7 +25,7 @@ class Slf4kGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun getPluginArtifact(): SubpluginArtifact = SubpluginArtifact(
         groupId = Slf4kPluginCoordinates.GROUP,
         artifactId = Slf4kPluginMetadata.COMPILER_PLUGIN_ARTIFACT_ID,
-        version = Slf4kPluginCoordinates.VERSION,
+        version = Slf4kPluginCoordinates.COMPILER_PLUGIN_VERSION,
     )
 
     override fun applyToCompilation(

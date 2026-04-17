@@ -68,7 +68,8 @@ dependencies {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
-        freeCompilerArgs.add("-Xplugin=/path/to/slf4k-compiler-plugin-0.0.1.jar")
+        // compiler-plugin 坐标是 <kotlinVersion>-<slf4kVersion>（KEFS 规则），例如 2.3.0-0.0.1
+        freeCompilerArgs.add("-Xplugin=/path/to/slf4k-compiler-plugin-2.3.0-0.0.1.jar")
         // 可选：自定义 logger 属性名
         freeCompilerArgs.addAll(
             "-P", "plugin:top.wang3.slf4k.compiler:logger-name=log",
@@ -76,6 +77,45 @@ tasks.withType<KotlinCompile>().configureEach {
     }
 }
 ```
+
+## IDE 支持（KEFS）
+
+Kotlin IDE 插件（2026.1 起）并没有对外稳定的 `firExtensionRegistrar` 扩展点，第三方 IDEA 插件
+无法直接把 FIR 扩展塞进 K2 Analysis API。因此推荐用户安装社区方案
+[**KEFS (Kotlin External FIR Support)**](https://plugins.jetbrains.com/plugin/27480-kotlin-external-fir-support)，
+让 IDE 复用编译器插件 jar 来驱动补全 / 跳转 / 引用解析。
+
+### 安装步骤
+
+1. IDEA 开启 **K2 Mode**（Settings → Languages & Frameworks → Kotlin → Enable K2 Mode）；
+   K1 模式下 FIR 扩展点不会触发，这是 JetBrains 的限制。
+2. 从 JetBrains Marketplace 搜索安装 **Kotlin External FIR Support**。
+3. 正常打开接入 `top.wang3.slf4k` 的 Gradle 项目并 sync。KEFS 会按坐标规则
+   `<idea-kotlinc-version>-<slf4kVersion>` 从 `dependencies` 自动加载
+   `slf4k-compiler-plugin` 并将其 FIR 扩展注册到 IDE 会话。
+
+### 坐标约定
+
+为了让 KEFS 按 IDE 捆绑 Kotlin 版本匹配到正确的 jar，`slf4k-compiler-plugin` 的发布坐标采用：
+
+```
+top.wang3.slf4k:slf4k-compiler-plugin:<idea-kotlinc-version>-<slf4kVersion>
+# 例：Kotlin 2.3.0 + slf4k 0.0.1 →
+top.wang3.slf4k:slf4k-compiler-plugin:2.3.0-0.0.1
+```
+
+Gradle 插件 (`top.wang3.slf4k`) 的主版本 (`SubpluginArtifact.version`) 已自动指向这条坐标，
+用户通过 Gradle 插件接入时 **无需** 手动改引用。
+
+### 已知限制
+
+- KEFS 通过反射的**无参构造器**实例化 `Slf4kFirExtensionRegistrar`。当前实现下，IDE 会话中
+  `loggerName` 只会使用默认值 `logger`；Gradle 中自定义的 `slf4k { loggerName.set("log") }`
+  对编译器生效，但 IDE 不会感知，`log.info(...)` 仍会红。想在 IDE 侧也生效，暂时保持默认
+  `loggerName`。
+- IDEA 2026.1 下 K2 在文件变更后可能丢失 FIR 合成声明，参见
+  [KT-84711](https://youtrack.jetbrains.com/issue/KT-84711)；JetBrains 预计在 2026.1.1 修复，
+  目前若症状明显可留在 IDEA 2025.1 / 2025.3。
 
 ## 行为细节
 
@@ -96,7 +136,8 @@ tasks.withType<KotlinCompile>().configureEach {
 ## 关键坐标
 
 - group: `top.wang3.slf4k`
-- version: `0.0.1`
+- version: `0.0.1`（`slf4k-annotations` / `slf4k-gradle-plugin`）
+- compiler-plugin version: `2.3.0-0.0.1`（KEFS 规则 `<kotlinVersion>-<slf4kVersion>`）
 - Kotlin: `2.3.0`
 - slf4j: `2.0.17`
 - Gradle 插件 ID: `top.wang3.slf4k`
