@@ -19,6 +19,9 @@ class Slf4kIrGenerationExtension(
     @OptIn(UnsafeDuringIrConstructionAPI::class)
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
         val loggerFactoryClass = pluginContext.referenceClass(Slf4KNames.loggerFactoryClassId) ?: return
+        // 选用 LoggerFactory.getLogger(String) 重载并以类 FQN 作为 category；
+        // KClass.java 在新版 Kotlin stdlib 里是 inline 属性，无法通过 CallableId 稳定解析，
+        // 因此不走 getLogger(Class<?>) 路径。
         val getLoggerFunction = loggerFactoryClass.owner.declarations
             .filterIsInstance<IrSimpleFunction>()
             .firstOrNull { fn ->

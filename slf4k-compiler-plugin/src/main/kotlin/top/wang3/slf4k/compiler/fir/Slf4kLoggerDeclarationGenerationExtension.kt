@@ -27,7 +27,6 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
-import top.wang3.slf4k.compiler.LOG
 import top.wang3.slf4k.compiler.Slf4KDeclarationKey
 import top.wang3.slf4k.compiler.Slf4KNames
 
@@ -66,7 +65,6 @@ class Slf4kLoggerDeclarationGenerationExtension(
         if (!owner.isSlf4KAnnotatedClass()) return null
         if (hasLoggerConflict(owner)) return null
         if (owner.companionObjectSymbol() != null) return null
-        messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "####generateNestedClassLikeDeclaration")
         return createCompanionObject(owner, Slf4KDeclarationKey).symbol
     }
 
@@ -85,8 +83,10 @@ class Slf4kLoggerDeclarationGenerationExtension(
     }
 
     override fun generateConstructors(context: MemberGenerationContext): List<FirConstructorSymbol> {
+        // 仅给插件新建的 companion 生成默认构造器；用户已有 companion 由其原有构造器负责，
+        // 注意不要在构造器里给 logger 赋值——JVM 下 companion 的 logger 背后是外部类的 private static
+        // 字段，从 companion 访问会触发 IllegalAccessError，赋值逻辑交给 IR 后端编到外部类 <clinit>。
         if (!context.owner.isGeneratedSlf4KCompanion()) return emptyList()
-        LOG("####generateConstructors")
         return listOf(createDefaultPrivateConstructor(context.owner, Slf4KDeclarationKey).symbol)
     }
 

@@ -1,7 +1,6 @@
 package top.wang3.slf4k.compiler
 
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
@@ -22,8 +21,6 @@ class Slf4kCompilerPluginRegistrar : CompilerPluginRegistrar() {
             ?: Slf4kPluginMetadata.DEFAULT_LOGGER_NAME
         val messageCollector = configuration.get(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
             ?: MessageCollector.NONE
-        messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "register plugin")
-        Slf4KNames.messageCollector = messageCollector
         FirExtensionRegistrarAdapter.registerExtension(
             Slf4kFirExtensionRegistrar(loggerName, messageCollector)
         )

@@ -14,12 +14,14 @@ import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.classIdOrFail
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.Name
 import top.wang3.slf4k.compiler.Slf4KDeclarationKey
+import top.wang3.slf4k.compiler.Slf4KNames
 
 class Slf4kIrTransformer(
     private val pluginContext: IrPluginContext,
@@ -32,6 +34,7 @@ class Slf4kIrTransformer(
         declaration.transformChildrenVoid(this)
 
         if (declaration.isCompanion) return declaration
+        if (!declaration.hasAnnotation(Slf4KNames.annotationClassId.asSingleFqName())) return declaration
 
         val loggerCategory = declaration.kotlinFqName.asString()
         declaration.collectGeneratedLoggerFields(generatedLoggerName).forEach { field ->
@@ -47,6 +50,9 @@ class Slf4kIrTransformer(
         val ownPropertyBackings = declarations
             .filterIsInstance<IrProperty>()
             .mapNotNull { property -> property.backingField?.takeIf { it.name == loggerName } }
+        // 用户自定义 companion 里 FIR 生成的成员只出现在 declarations；插件新建的 companion
+        // 在当前 IR 阶段对 getCallableNamesForClass 产出的成员尚未落到 declarations 列表上，
+        // 必须通过 referenceProperties 兜底拿到它的 backingField。
         val companionFields = declarations
             .filterIsInstance<IrClass>()
             .filter { it.isCompanion }
