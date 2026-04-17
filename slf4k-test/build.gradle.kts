@@ -15,6 +15,7 @@ dependencies {
 }
 
 tasks.withType<KotlinCompile> {
+    dependsOn(":slf4k-compiler-plugin:clean")
     dependsOn(":slf4k-compiler-plugin:jar")
 
     val jarTask = project(":slf4k-compiler-plugin").tasks.named<Jar>("jar").get()
