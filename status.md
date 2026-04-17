@@ -59,31 +59,29 @@
 
 ## 下一步建议
 
-按优先级排列：
+1. **优化**
+   - `Slf4kIrTransformer.collectGeneratedLoggerFields` 当前对每个被 `@Slf4k` 标注的类都触发 `referenceProperties`，对大型项目可先判断类是否带注解再调用。
+   - 考虑根据 `@Slf4k` 注解剪枝 `visitClass`，避免遍历全部类。
 
-1. **发布到仓库并完整回归**
-   - 跑一次 `./gradlew publishAllPublicationsToWang3Repository`（需要 `CNB_OI_TOKEN`），验证三个 artifact + gradle 插件 marker 正确上传到 `maven.cnb.cool`。
-   - 发布后可以把 `slf4k-test` 切到真正的 Gradle 插件形式 active（从注释里取出），作为 dogfood 终态。
-
-2. **移除/整理遗留代码**
-   - `Slf4KNames.getJavaClassCallableId` 与 `javaClassClassId` 已不再使用，可删。
-   - `Slf4KNames.getLoggerCallableId` 也已不再使用（改为直接从 class declarations 查找），可删。
-   - `Slf4KNames.messageCollector` 全局 lateinit 仅服务于 `LOG()` 便利函数，建议收敛或改为依赖注入。
-
-3. **扩展测试覆盖**
+2. **扩展测试覆盖**
    - 嵌套类、内部类、object、enum class 的 `@Slf4k` 行为。
    - 外部类或 companion 已存在同名 `logger` 的冲突检测路径（`hasLoggerConflict` 分支）。
    - 多个 `@Slf4k` 类在同一文件时的处理。
    - functionalTest 补充：非法 `loggerName`（非 Kotlin 标识符）应在编译期报错路径。
 
+3. **移除/整理遗留代码**
+   - `Slf4KNames.getJavaClassCallableId` 与 `javaClassClassId` 已不再使用，可删。
+   - `Slf4KNames.getLoggerCallableId` 也已不再使用（改为直接从 class declarations 查找），可删。
+   - `Slf4KNames.messageCollector` 全局 lateinit 仅服务于 `LOG()` 便利函数，建议收敛或改为依赖注入。
+
 4. **文档**
    - `README.md` 补使用说明（Gradle 插件方式 + 编译器插件方式）。
    - 在 `@Slf4k` 注解上补充 KDoc。
+   - 在插件核心实现代码中补充代码注释
 
-5. **可选优化**
-   - `Slf4kIrTransformer.collectGeneratedLoggerFields` 当前对每个被 `@Slf4k` 标注的类都触发 `referenceProperties`，对大型项目可先判断类是否带注解再调用。
-   - 考虑根据 `@Slf4k` 注解剪枝 `visitClass`，避免遍历全部类。
-   - 把 `Slf4kPluginMetadata` 抽到独立的 `slf4k-common` 模块，避免 gradle-plugin 依赖整个 compiler-plugin（尽管已 `isTransitive = false`）。
+5. **发布到仓库并完整回归**
+   - 跑一次 `./gradlew publishAllPublicationsToWang3Repository`（需要 `CNB_OI_TOKEN`），验证三个 artifact + gradle 插件 marker 正确上传到 `maven.cnb.cool`。
+   - 发布后可以把 `slf4k-test` 切到真正的 Gradle 插件形式 active（从注释里取出），作为 dogfood 终态。
 
 ## 关键坐标
 
