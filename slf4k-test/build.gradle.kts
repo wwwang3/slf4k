@@ -41,7 +41,7 @@ tasks.withType<KotlinCompile> {
  *
  *     plugins {
  *         kotlin("jvm") version "2.3.0"
- *         id("top.wang3.slf4k") version "0.0.1"
+ *         id("top.wang3.slf4k") version "2.3.0-0.0.1"
  *     }
  *
  *     // 可选：覆盖生成的 logger 属性名，默认为 "logger"

@@ -3,11 +3,12 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-kotlin = "2.3.0"
-# kotlinCompiler 仅用于 slf4k-compiler-plugin 的 kotlin-compiler-embeddable 依赖与发布坐标，
-# 需与目标 IDE 捆绑的 kotlinc 保持一致（KEFS 坐标规则 <idea-kotlinc-version>-<slf4kVersion>）。
+# 全局 Kotlin 版本，KGP / kotlin-compiler-embeddable / slf4k-compiler-plugin 与 slf4k-gradle-plugin
+# 的发布坐标都由它派生。必须 = 目标 IDE 捆绑的 kotlinc 版本（KEFS 坐标规则
+# <idea-kotlinc-version>-<slf4kVersion> 与编译期 KGP/KCE API 对齐的双重要求）。
+# CI 跑矩阵可用 `-Pkotlin.version=X` 覆盖（见 settings.gradle.kts）。
 # dev 构建发布在 https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/
-kotlinCompiler = "2.4.0-dev-2631"
+kotlin = "2.3.0"
 junit = "5.10.2"
 junitPlatform = "1.10.2"
 slf4j = "2.0.17"
@@ -18,7 +19,7 @@ maven-publish = "0.36.0"
 mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "maven-publish" }
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinGradlePluginApi = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin-api", version.ref = "kotlin" }
-kotlinCompilerEmbeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlinCompiler" }
+kotlinCompilerEmbeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
 junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junitPlatformLauncher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
 slf4jApi = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

@@ -41,7 +41,7 @@ class UserService {
 ```kotlin
 plugins {
     kotlin("jvm") version "2.3.0"
-    id("top.wang3.slf4k") version "0.0.1"
+    id("top.wang3.slf4k") version "2.3.0-0.0.1"
 }
 
 // 可选：覆盖生成的 logger 属性名，默认 "logger"
@@ -55,6 +55,8 @@ dependencies {
     // slf4k-annotations 由 Gradle 插件自动注入到 implementation 配置，无需手写
 }
 ```
+
+> Gradle 插件坐标采用 `<kotlin>-<slf4k>` 格式（与下文 compiler-plugin 同规则），用户从 `version` 字段即可看到插件适配的 Kotlin 版本。
 
 ### 2. 编译器插件直挂（仅在无法使用 Gradle 插件时使用）
 
@@ -96,16 +98,22 @@ Kotlin IDE 插件（2026.1 起）并没有对外稳定的 `firExtensionRegistrar
 
 ### 坐标约定
 
-为了让 KEFS 按 IDE 捆绑 Kotlin 版本匹配到正确的 jar，`slf4k-compiler-plugin` 的发布坐标采用：
+为了让 KEFS 按 IDE 捆绑 Kotlin 版本匹配到正确的 jar，`slf4k-compiler-plugin` 与
+`slf4k-gradle-plugin` 的发布坐标都采用 `<kotlin>-<slf4k>` 格式：
 
 ```
 top.wang3.slf4k:slf4k-compiler-plugin:<idea-kotlinc-version>-<slf4kVersion>
+top.wang3.slf4k:slf4k-gradle-plugin:<idea-kotlinc-version>-<slf4kVersion>
 # 例：Kotlin 2.3.0 + slf4k 0.0.1 →
 top.wang3.slf4k:slf4k-compiler-plugin:2.3.0-0.0.1
+top.wang3.slf4k:slf4k-gradle-plugin:2.3.0-0.0.1
 ```
 
-Gradle 插件 (`top.wang3.slf4k`) 的主版本 (`SubpluginArtifact.version`) 已自动指向这条坐标，
-用户通过 Gradle 插件接入时 **无需** 手动改引用。
+`slf4k-annotations` 是跨 Kotlin 版本的单一 artifact（`languageVersion=2.0` 锁 metadata baseline），
+不随 Kotlin 版本重发，坐标只有 slf4k semver：`top.wang3.slf4k:slf4k-annotations:0.0.1`。
+
+Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-plugin `SubpluginArtifact`
+版本指向 `<kotlin>-<slf4k>`，annotations 依赖指向 slf4k semver，用户 **无需** 手动改引用。
 
 ### 已知限制
 
@@ -133,12 +141,29 @@ Gradle 插件 (`top.wang3.slf4k`) 的主版本 (`SubpluginArtifact.version`) 已
 ./gradlew :slf4k-gradle-plugin:check         # Gradle 插件 functionalTest（GradleRunner）
 ```
 
+## 多 Kotlin 版本支持
+
+全局 Kotlin 版本由 `gradle/libs.versions.toml` 的 `kotlin` 变量统一控制——KGP、
+`kotlin-compiler-embeddable` 与 compiler-plugin / gradle-plugin 的坐标都从它派生。
+必须与目标 IDE 捆绑的 kotlinc 保持一致（KEFS 要求 + 编译期 API 对齐）。
+
+临时切版（命令行覆盖，不改 `libs.versions.toml`）：
+
+```bash
+./gradlew :slf4k-compiler-plugin:build -Pkotlin.version=2.4.0-dev-2631
+# 产出 slf4k-compiler-plugin-2.4.0-dev-2631-0.0.1.jar
+```
+
+CI 矩阵可并行跑多个 `-Pkotlin.version=X` 产出多份 compiler-plugin / gradle-plugin artifact；
+`slf4k-annotations` 只需发一次（baseline 已锁到 Kotlin 2.0 metadata）。
+
 ## 关键坐标
 
 - group: `top.wang3.slf4k`
-- version: `0.0.1`（`slf4k-annotations` / `slf4k-gradle-plugin`）
-- compiler-plugin version: `2.3.0-0.0.1`（KEFS 规则 `<kotlinVersion>-<slf4kVersion>`）
-- Kotlin: `2.3.0`
+- slf4k semver: `0.0.1`（= `slf4k-annotations` 版本、`<kotlin>-<slf4k>` 中的 `<slf4k>` 部分）
+- compiler-plugin 坐标: `slf4k-compiler-plugin:2.3.0-0.0.1`（KEFS 规则 `<kotlin>-<slf4k>`）
+- gradle-plugin 坐标: `slf4k-gradle-plugin:2.3.0-0.0.1`（同规则；`plugins {}` 里用户可见）
+- Kotlin: `2.3.0`（= IDE 捆绑 kotlinc 版本，可用 `-Pkotlin.version=X` 覆盖）
 - slf4j: `2.0.17`
 - Gradle 插件 ID: `top.wang3.slf4k`
 - 编译器插件 ID: `top.wang3.slf4k.compiler`

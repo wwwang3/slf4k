@@ -6,6 +6,10 @@ plugins {
 
 description = "Gradle plugin that wires the slf4k Kotlin compiler plugin into user builds"
 
+// Gradle 插件也采用 <kotlin>-<slf4k> 坐标，用户在 `plugins { id("top.wang3.slf4k") version "..." }`
+// 里直观看到插件适配的 Kotlin 版本。compiler-plugin 同规则。
+version = "${libs.versions.kotlin.get()}-${rootProject.version}"
+
 dependencies {
     compileOnly(libs.kotlinGradlePluginApi)
     implementation(project(":slf4k-compiler-plugin")) {
@@ -18,11 +22,12 @@ dependencies {
 val generatePluginCoordinates by tasks.registering {
     val outDir = layout.buildDirectory.dir("generated/sources/slf4k-coordinates/kotlin")
     val groupValue = project.group.toString()
-    val versionValue = project.version.toString()
+    // slf4kVersion: slf4k semver，用于 annotations 坐标注入（annotations 不走 KEFS 规则，单一 artifact）。
+    val slf4kVersion = rootProject.version.toString()
     // compiler-plugin 用 KEFS 坐标规则发布：<kotlinVersion>-<slf4kVersion>
-    val compilerPluginVersionValue = "${libs.versions.kotlinCompiler.get()}-$versionValue"
+    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$slf4kVersion"
     inputs.property("group", groupValue)
-    inputs.property("version", versionValue)
+    inputs.property("slf4kVersion", slf4kVersion)
     inputs.property("compilerPluginVersion", compilerPluginVersionValue)
     outputs.dir(outDir)
     doLast {
@@ -34,7 +39,8 @@ val generatePluginCoordinates by tasks.registering {
 
             internal object Slf4kPluginCoordinates {
                 const val GROUP = "$groupValue"
-                const val VERSION = "$versionValue"
+                // slf4k semver，用于 slf4k-annotations 坐标（单一 artifact、跨 Kotlin 版本通用）。
+                const val VERSION = "$slf4kVersion"
                 const val COMPILER_PLUGIN_VERSION = "$compilerPluginVersionValue"
             }
             """.trimIndent() + "\n"
@@ -85,9 +91,12 @@ val installTestArtifacts by tasks.registering {
     )
     outputs.dir(testMavenRepo)
     val groupValue = project.group.toString()
-    val versionValue = project.version.toString()
-    // compiler-plugin 走 KEFS 坐标：<kotlinVersion>-<slf4kVersion>
-    val compilerPluginVersionValue = "${libs.versions.kotlinCompiler.get()}-$versionValue"
+    // slf4kVersion: annotations 的坐标版本（slf4k semver，跨 Kotlin 版本单一 artifact）
+    val slf4kVersion = rootProject.version.toString()
+    // gradle-plugin 自身的坐标版本，= <kotlin>-<slf4k>
+    val pluginArtifactVersion = project.version.toString()
+    // compiler-plugin 走 KEFS 坐标：<kotlinVersion>-<slf4kVersion>（= pluginArtifactVersion）
+    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$slf4kVersion"
     val repoDirProvider = testMavenRepo
     val annotationsJarProvider = annotationsJarTask.flatMap { it.archiveFile }
     val compilerJarProvider = compilerPluginJarTask.flatMap { it.archiveFile }
@@ -98,7 +107,7 @@ val installTestArtifacts by tasks.registering {
             repoDir = repoDir,
             groupId = groupValue,
             artifactId = "slf4k-annotations",
-            version = versionValue,
+            version = slf4kVersion,
             jarFile = annotationsJarProvider.get().asFile,
         )
         installArtifact(
@@ -112,7 +121,7 @@ val installTestArtifacts by tasks.registering {
             repoDir = repoDir,
             groupId = groupValue,
             artifactId = "slf4k-gradle-plugin",
-            version = versionValue,
+            version = pluginArtifactVersion,
             jarFile = gradlePluginJarProvider.get().asFile,
             runtimeDependencies = listOf(Triple(groupValue, "slf4k-compiler-plugin", compilerPluginVersionValue)),
         )
@@ -121,7 +130,7 @@ val installTestArtifacts by tasks.registering {
             pluginId = "top.wang3.slf4k",
             implementationGroupId = groupValue,
             implementationArtifactId = "slf4k-gradle-plugin",
-            version = versionValue,
+            version = pluginArtifactVersion,
         )
     }
 }
