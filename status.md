@@ -75,26 +75,11 @@ plugins {
    - `slf4k-test/build.gradle.kts` 里 `dependsOn(":slf4k-compiler-plugin:clean")` 与 `:jar` 无执行顺序约束，`./gradlew build` 时 clean 可能在 jar 之后跑，导致 compileKotlin 读到不存在的插件 jar。
    - 建议改为：删除 `clean` 依赖（Gradle up-to-date 检查即可保证 jar 新鲜），或加 `mustRunAfter` 显式排序。
 
-2. **优化**
-   - `Slf4kIrTransformer.collectGeneratedLoggerFields` 对每个被 `@Slf4k` 标注的类触发 `referenceProperties`，大型项目可先判断注解再调用。
-   - 考虑根据 `@Slf4k` 注解剪枝 `visitClass`，避免遍历全部类。
-
-3. **扩展测试覆盖**
-   - 嵌套类、内部类、object、enum class 的 `@Slf4k` 行为。
-   - 外部类或 companion 已存在同名 `logger` 的冲突检测路径。
-   - 多个 `@Slf4k` 类在同一文件时的处理。
-   - functionalTest 补非法 `loggerName` 的编译期报错路径。
-
-4. **移除/整理遗留代码**
-   - `Slf4KNames.getJavaClassCallableId` 与 `javaClassClassId` 已不再使用，可删。
-   - `Slf4KNames.getLoggerCallableId` 已不再使用，可删。
-   - `Slf4KNames.messageCollector` 全局 lateinit 建议收敛或依赖注入。
-
-5. **多 Kotlin 版本发布流水线**
+2. **多 Kotlin 版本发布流水线**
    - 在 CI 里配置矩阵 job：`matrix: [2.3.0, 2.4.0-...]`，每行跑 `-Pkotlin.version=$X ./gradlew publishAllPublicationsToWang3Repository`，产出对应 `<X>-0.0.1` 的 compiler-plugin + gradle-plugin。
    - annotations job 单独跑一次（不需要矩阵）。
 
-6. **发布到仓库并完整回归**
+3. **发布到仓库并完整回归**
    - `./gradlew publishAllPublicationsToWang3Repository`（需 `CNB_OI_TOKEN`）。
    - 发布后可把 `slf4k-test` 的 `-Xplugin=` hack 切到真正的 Gradle 插件方式作为 dogfood 终态（需要 `includeBuild` 结构调整，见 `slf4k-test/build.gradle.kts` 注释块里的分析）。
 
