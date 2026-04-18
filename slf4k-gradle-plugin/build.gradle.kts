@@ -20,7 +20,7 @@ val generatePluginCoordinates by tasks.registering {
     val groupValue = project.group.toString()
     val versionValue = project.version.toString()
     // compiler-plugin 用 KEFS 坐标规则发布：<kotlinVersion>-<slf4kVersion>
-    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$versionValue"
+    val compilerPluginVersionValue = "${libs.versions.kotlinCompiler.get()}-$versionValue"
     inputs.property("group", groupValue)
     inputs.property("version", versionValue)
     inputs.property("compilerPluginVersion", compilerPluginVersionValue)
@@ -87,7 +87,7 @@ val installTestArtifacts by tasks.registering {
     val groupValue = project.group.toString()
     val versionValue = project.version.toString()
     // compiler-plugin 走 KEFS 坐标：<kotlinVersion>-<slf4kVersion>
-    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$versionValue"
+    val compilerPluginVersionValue = "${libs.versions.kotlinCompiler.get()}-$versionValue"
     val repoDirProvider = testMavenRepo
     val annotationsJarProvider = annotationsJarTask.flatMap { it.archiveFile }
     val compilerJarProvider = compilerPluginJarTask.flatMap { it.archiveFile }

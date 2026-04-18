@@ -4,6 +4,10 @@
 
 [versions]
 kotlin = "2.3.0"
+# kotlinCompiler 仅用于 slf4k-compiler-plugin 的 kotlin-compiler-embeddable 依赖与发布坐标，
+# 需与目标 IDE 捆绑的 kotlinc 保持一致（KEFS 坐标规则 <idea-kotlinc-version>-<slf4kVersion>）。
+# dev 构建发布在 https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/
+kotlinCompiler = "2.4.0-dev-2631"
 junit = "5.10.2"
 junitPlatform = "1.10.2"
 slf4j = "2.0.17"
@@ -14,7 +18,7 @@ maven-publish = "0.36.0"
 mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "maven-publish" }
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinGradlePluginApi = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin-api", version.ref = "kotlin" }
-kotlinCompilerEmbeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
+kotlinCompilerEmbeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlinCompiler" }
 junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junitPlatformLauncher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
 slf4jApi = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
