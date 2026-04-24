@@ -25,7 +25,7 @@ class Slf4kCompilerPluginRegistrar : CompilerPluginRegistrar() {
             Slf4kFirExtensionRegistrar(loggerName, messageCollector)
         )
         IrGenerationExtension.registerExtension(
-            Slf4kIrGenerationExtension(loggerName)
+            Slf4kIrGenerationExtension(loggerName, messageCollector)
         )
     }
 }

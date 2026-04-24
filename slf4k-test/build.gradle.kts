@@ -14,19 +14,18 @@ dependencies {
     implementation(kotlin("test"))
 }
 
-tasks.withType<KotlinCompile> {
-    dependsOn(":slf4k-compiler-plugin:clean")
-    dependsOn(":slf4k-compiler-plugin:jar")
+val compilerPluginJar = project(":slf4k-compiler-plugin").tasks.named<Jar>("jar")
 
-    val jarTask = project(":slf4k-compiler-plugin").tasks.named<Jar>("jar").get()
-    val jarPath = jarTask.archiveFile.get().asFile.absolutePath
+tasks.withType<KotlinCompile> {
+    dependsOn(compilerPluginJar)
+    val jarPath = compilerPluginJar.flatMap { it.archiveFile }.map { it.asFile.absolutePath }
 
     doFirst {
-        println("compiler-path: $jarPath")
+        println("compiler-path: ${jarPath.get()}")
     }
 
     compilerOptions {
-        freeCompilerArgs.add("-Xplugin=${jarPath}")
+        freeCompilerArgs.add(jarPath.map { "-Xplugin=$it" })
     }
 }
 

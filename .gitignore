@@ -54,6 +54,7 @@ build-cache
 
 .cursor/
 .agent/
+.codex/config.toml
 #.codex/
 
 

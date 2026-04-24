@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class Slf4kGradlePluginFunctionalTest {
 
@@ -42,12 +43,35 @@ class Slf4kGradlePluginFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":test")?.outcome, result.output)
     }
 
+    @Test
+    fun `missing slf4j api fails with a clear diagnostic`() {
+        writeSettings()
+        writeBuild(loggerName = null, includeSlf4jApi = false)
+        writeAnnotatedOnlySample()
+
+        val result = runGradleAndFail("compileKotlin", "--stacktrace")
+
+        assertEquals(TaskOutcome.FAILED, result.task(":compileKotlin")?.outcome, result.output)
+        assertTrue(
+            result.output.contains("slf4k cannot generate logger") &&
+                result.output.contains("org.slf4j:slf4j-api"),
+            result.output,
+        )
+    }
+
     private fun runGradle(vararg args: String): BuildResult =
         GradleRunner.create()
             .withProjectDir(projectDir)
             .withArguments(*args)
             .forwardOutput()
             .build()
+
+    private fun runGradleAndFail(vararg args: String): BuildResult =
+        GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withArguments(*args)
+            .forwardOutput()
+            .buildAndFail()
 
     private fun writeSettings() {
         val repoUri = File(testMavenRepo).toURI().toString()
@@ -71,10 +95,18 @@ class Slf4kGradlePluginFunctionalTest {
         )
     }
 
-    private fun writeBuild(loggerName: String?) {
+    private fun writeBuild(loggerName: String?, includeSlf4jApi: Boolean = true) {
         val loggerBlock = loggerName
             ?.let { "slf4k { loggerName.set(\"$it\") }" }
             .orEmpty()
+        val slf4jDependencies = if (includeSlf4jApi) {
+            """
+                implementation("org.slf4j:slf4j-api:$slf4jVersion")
+                implementation("org.slf4j:slf4j-simple:$slf4jVersion")
+            """.trimIndent()
+        } else {
+            ""
+        }
         File(projectDir, "build.gradle.kts").writeText(
             """
             plugins {
@@ -85,13 +117,26 @@ class Slf4kGradlePluginFunctionalTest {
             $loggerBlock
 
             dependencies {
-                implementation("org.slf4j:slf4j-api:$slf4jVersion")
-                implementation("org.slf4j:slf4j-simple:$slf4jVersion")
+                $slf4jDependencies
                 testImplementation(kotlin("reflect"))
                 testImplementation(kotlin("test"))
             }
 
             tasks.test { useJUnitPlatform() }
+            """.trimIndent()
+        )
+    }
+
+    private fun writeAnnotatedOnlySample() {
+        val dir = File(projectDir, "src/main/kotlin/sample").apply { mkdirs() }
+        File(dir, "Sample.kt").writeText(
+            """
+            package sample
+
+            import top.wang3.slf4k.Slf4k
+
+            @Slf4k
+            class Sample
             """.trimIndent()
         )
     }

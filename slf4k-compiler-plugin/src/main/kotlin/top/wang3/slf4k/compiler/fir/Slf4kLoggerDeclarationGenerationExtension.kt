@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
 import top.wang3.slf4k.compiler.Slf4KDeclarationKey
 import top.wang3.slf4k.compiler.Slf4KNames
+import top.wang3.slf4k.compiler.Slf4kDiagnosticMessages
 
 class Slf4kLoggerDeclarationGenerationExtension(
     session: FirSession,
@@ -41,6 +42,7 @@ class Slf4kLoggerDeclarationGenerationExtension(
         annotated(Slf4KNames.annotationClassId.asSingleFqName())
     }
     private val reportedConflicts = mutableSetOf<ClassId>()
+    private val reportedMissingSlf4jApi = mutableSetOf<ClassId>()
 
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(predicate)
@@ -51,6 +53,7 @@ class Slf4kLoggerDeclarationGenerationExtension(
         context: NestedClassGenerationContext,
     ): Set<Name> {
         if (!classSymbol.isSlf4KAnnotatedClass()) return emptySet()
+        if (!hasRequiredSlf4jApi(classSymbol)) return emptySet()
         if (hasLoggerConflict(classSymbol)) return emptySet()
         if (classSymbol.companionObjectSymbol() != null) return emptySet()
         return setOf(SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT)
@@ -63,6 +66,7 @@ class Slf4kLoggerDeclarationGenerationExtension(
     ): FirClassLikeSymbol<*>? {
         if (name != SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT) return null
         if (!owner.isSlf4KAnnotatedClass()) return null
+        if (!hasRequiredSlf4jApi(owner)) return null
         if (hasLoggerConflict(owner)) return null
         if (owner.companionObjectSymbol() != null) return null
         return createCompanionObject(owner, Slf4KDeclarationKey).symbol
@@ -74,6 +78,7 @@ class Slf4kLoggerDeclarationGenerationExtension(
     ): Set<Name> {
         if (!classSymbol.isSlf4KTargetCompanion()) return emptySet()
         val outerClass = classSymbol.outerSlf4KClass() ?: return emptySet()
+        if (!hasRequiredSlf4jApi(outerClass)) return emptySet()
         if (hasLoggerConflict(outerClass)) return emptySet()
         return if (classSymbol.isGeneratedSlf4KCompanion()) {
             setOf(loggerPropertyName, SpecialNames.INIT)
@@ -98,6 +103,7 @@ class Slf4kLoggerDeclarationGenerationExtension(
         if (callableId.callableName != loggerPropertyName) return emptyList()
         if (!owner.isSlf4KTargetCompanion()) return emptyList()
         val outerClass = owner.outerSlf4KClass() ?: return emptyList()
+        if (!hasRequiredSlf4jApi(outerClass)) return emptyList()
         if (hasLoggerConflict(outerClass)) return emptyList()
 
         val property = createMemberProperty(
@@ -144,6 +150,30 @@ class Slf4kLoggerDeclarationGenerationExtension(
     private fun FirClassSymbol<*>.isGeneratedSlf4KCompanion(): Boolean {
         val origin = origin as? FirDeclarationOrigin.Plugin ?: return false
         return origin.key == Slf4KDeclarationKey
+    }
+
+    private fun hasRequiredSlf4jApi(classSymbol: FirClassSymbol<*>): Boolean {
+        val missingSymbols = buildList {
+            if (session.symbolProvider.getClassLikeSymbolByClassId(Slf4KNames.loggerClassId) == null) {
+                add(Slf4KNames.loggerClassId.asSingleFqName().asString())
+            }
+            if (session.symbolProvider.getClassLikeSymbolByClassId(Slf4KNames.loggerFactoryClassId) == null) {
+                add(Slf4KNames.loggerFactoryClassId.asSingleFqName().asString())
+            }
+        }
+        if (missingSymbols.isEmpty()) return true
+
+        val classId = classSymbol.classId
+        if (reportedMissingSlf4jApi.add(classId)) {
+            messageCollector.report(
+                CompilerMessageSeverity.ERROR,
+                Slf4kDiagnosticMessages.missingSlf4jApiForClass(
+                    className = classId.asSingleFqName().asString(),
+                    missingSymbols = missingSymbols,
+                ),
+            )
+        }
+        return false
     }
 
     private fun hasLoggerConflict(classSymbol: FirClassSymbol<*>): Boolean {
