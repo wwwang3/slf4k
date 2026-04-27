@@ -1,20 +1,28 @@
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+
 plugins {
     id("com.vanniktech.maven.publish")
 }
 
-
 publishing {
     repositories {
         maven {
-            name = "wang3"
+            name = "cnb"
             url = uri("https://maven.cnb.cool/wwang3/maven-repository/-/packages/")
 
-            val token = System.getenv("CNB_OI_TOKEN") ?: error("token required")
             credentials {
                 username = "cnb"
-                password = token
+                password = providers.environmentVariable("CNB_OI_TOKEN").orNull
             }
 
+        }
+    }
+}
+
+tasks.withType<PublishToMavenRepository>().configureEach {
+    doFirst {
+        if (repository.name == "cnb" && providers.environmentVariable("CNB_OI_TOKEN").orNull.isNullOrBlank()) {
+            error("CNB_OI_TOKEN is required to publish to the CNB Maven repository.")
         }
     }
 }
