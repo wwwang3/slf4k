@@ -1,0 +1,37 @@
+$:
+  # vscode 事件：专供页面中启动远程开发用
+  vscode:
+    - docker:
+        image: docker.cnb.cool/wwang3/remote-dev-backend:1.0.0
+      imports: https://cnb.cool/wwang3/configs/-/blob/main/token.yml
+      env:
+        GIT_CACHE_REPO: https://cnb.cool/wwang3/cnd-files.git
+        GIT_USERNAME: $CNB_GIT_USER
+        GIT_EMAIL: $CNB_GIT_EMAIL
+        GIT_AUTH_USER: cnb
+        GIT_AUTH_PASSWORD: $CNB_API_TOKEN
+        SYNC_DIRECTORIES: "idea-plugins:/root/.local/share/JetBrains/IntelliJIdea2026.1"
+      runner:
+        cpus: 16
+      services:
+        - vscode
+        - docker
+      stages:
+        - name: set-env
+          script: update_ssh_env.sh
+          #type: vscode:go
+        - name: cache-sync
+          script: cache-sync.sh
+          # type: vscode:go
+        - name: set-token
+          image: tencentcom/git-set-credential:latest
+          settings:
+            userName: ${GIT_USERNAME}
+            userEmail: ${GIT_EMAIL}
+            loginUserName: ${GIT_AUTH_USER}
+            loginPassword: ${GIT_AUTH_PASSWORD}
+        - name: vscode-go
+          type: vscode:go
+      endStages:
+        - name: cache-push
+          script: cache-push.sh

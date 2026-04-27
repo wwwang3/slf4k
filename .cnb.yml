@@ -40,6 +40,9 @@
         fi
         ./gradlew --no-daemon publishAllPublicationsToWang3Repository
 
+include:
+  - ".cnb/remote-dev.yml"
+
 "$":
   push:
     - name: gradle-check
