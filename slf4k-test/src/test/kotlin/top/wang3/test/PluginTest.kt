@@ -17,7 +17,7 @@ class PluginTest {
     @Test
     fun `@Slf4k generates a companion object when missing`() {
         assertNotNull(TestA::class.companionObject, "expected generated companion on TestA")
-        println("success")
+        println("test1 success")
     }
 
     @Test
@@ -25,7 +25,7 @@ class PluginTest {
         val companion = assertNotNull(TestB::class.companionObject, "expected companion on TestB")
         val name = companion.declaredMemberProperties.firstOrNull { it.name == "NAME" }
         assertNotNull(name, "user-defined companion member NAME must still exist")
-        println("success")
+        println("test2 success")
     }
 
     @Test
@@ -35,7 +35,7 @@ class PluginTest {
 
         assertEquals("top.wang3.test.TestA", loggerA.name)
         assertEquals("top.wang3.test.TestB", loggerB.name)
-        println("success")
+        println("test3 success")
     }
 
     @Test
@@ -53,7 +53,7 @@ class PluginTest {
             output.contains("doing work in TestB") && output.contains("top.wang3.test.TestB"),
             "TestB.doWork should emit a warn message: $output"
         )
-        println("success")
+        println("test4 success")
     }
 
     private fun readLogger(ownerClass: Class<*>): Logger {

@@ -3,6 +3,8 @@ $:
   vscode:
     - docker:
         image: docker.cnb.cool/wwang3/remote-dev-backend:1.0.0
+        dockerUser: cnb
+        dockerPassword: ${CNB_API_TOKEN}
       imports: https://cnb.cool/wwang3/configs/-/blob/main/token.yml
       env:
         GIT_CACHE_REPO: https://cnb.cool/wwang3/cnd-files.git
@@ -19,9 +21,8 @@ $:
       stages:
         - name: set-env
           script: update_ssh_env.sh
-          #type: vscode:go
-        - name: cache-sync
-          script: cache-sync.sh
+#        - name: cache-sync
+#          script: cache-sync.sh
           # type: vscode:go
         - name: set-token
           image: tencentcom/git-set-credential:latest
@@ -32,6 +33,6 @@ $:
             loginPassword: ${GIT_AUTH_PASSWORD}
         - name: vscode-go
           type: vscode:go
-      endStages:
-        - name: cache-push
-          script: cache-push.sh
+#      endStages:
+#        - name: cache-push
+#          script: cache-push.sh

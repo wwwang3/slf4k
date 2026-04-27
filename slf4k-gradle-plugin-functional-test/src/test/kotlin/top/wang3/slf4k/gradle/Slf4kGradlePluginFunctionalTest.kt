@@ -145,7 +145,7 @@ class Slf4kGradlePluginFunctionalTest {
             dependencies {
                 $slf4jDependencies
                 testImplementation(kotlin("reflect"))
-                testImplementation(kotlin("test"))
+                testImplementation(kotlin("test-junit5"))
             }
 
             tasks.test { useJUnitPlatform() }

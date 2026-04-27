@@ -1,3 +1,6 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.jvm.tasks.Jar
 
 plugins {
@@ -13,9 +16,12 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
+val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val slf4kVersion = libs.versions.slf4k.get()
 val kotlinVersion = libs.versions.kotlin.get()
 val slf4jVersion = libs.versions.slf4j.get()
+val junitVersion = libsCatalog.findVersion("junit").get().requiredVersion
+val junitPlatformVersion = libsCatalog.findVersion("junit-platform").get().requiredVersion
 val gradleDistributionUri = "https://mirrors.cloud.tencent.com/gradle/gradle-9.4.0-all.zip"
 
 val groupValue = project.group.toString()
@@ -30,6 +36,13 @@ val testExternalArtifacts by configurations.creating {
 }
 
 dependencies {
+    testExternalArtifacts("org.jetbrains.kotlin.jvm:org.jetbrains.kotlin.jvm.gradle.plugin:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion")
+    testExternalArtifacts("org.junit.jupiter:junit-jupiter:$junitVersion")
+    testExternalArtifacts("org.junit.platform:junit-platform-launcher:$junitPlatformVersion")
     testExternalArtifacts("org.slf4j:slf4j-api:$slf4jVersion")
     testExternalArtifacts("org.slf4j:slf4j-simple:$slf4jVersion")
 }
@@ -47,6 +60,10 @@ val installTestArtifacts by tasks.registering {
         gradlePluginJarTask.flatMap { it.archiveFile },
         testExternalArtifacts,
     )
+    inputs.property("kotlinVersion", kotlinVersion)
+    inputs.property("slf4jVersion", slf4jVersion)
+    inputs.property("junitVersion", junitVersion)
+    inputs.property("junitPlatformVersion", junitPlatformVersion)
     outputs.dir(testMavenRepo)
 
     val repoDirProvider = testMavenRepo
@@ -58,6 +75,7 @@ val installTestArtifacts by tasks.registering {
         val repoDir = repoDirProvider.get().asFile
         repoDir.deleteRecursively()
         repoDir.mkdirs()
+        installResolvedExternalArtifacts(repoDir, testExternalArtifacts)
         installArtifact(
             repoDir = repoDir,
             groupId = groupValue,
@@ -80,21 +98,6 @@ val installTestArtifacts by tasks.registering {
             jarFile = gradlePluginJarProvider.get().asFile,
             runtimeDependencies = listOf(Triple(groupValue, "slf4k-compiler-plugin", compilerPluginVersionValue)),
         )
-        installArtifact(
-            repoDir = repoDir,
-            groupId = "org.slf4j",
-            artifactId = "slf4j-api",
-            version = slf4jVersion,
-            jarFile = testExternalArtifacts.jarFile("slf4j-api", slf4jVersion),
-        )
-        installArtifact(
-            repoDir = repoDir,
-            groupId = "org.slf4j",
-            artifactId = "slf4j-simple",
-            version = slf4jVersion,
-            jarFile = testExternalArtifacts.jarFile("slf4j-simple", slf4jVersion),
-            runtimeDependencies = listOf(Triple("org.slf4j", "slf4j-api", slf4jVersion)),
-        )
         installPluginMarker(
             repoDir = repoDir,
             pluginId = "top.wang3.slf4k",
@@ -104,9 +107,6 @@ val installTestArtifacts by tasks.registering {
         )
     }
 }
-
-fun Configuration.jarFile(artifactId: String, version: String): java.io.File =
-    files.single { it.name == "$artifactId-$version.jar" }
 
 fun installArtifact(
     repoDir: java.io.File,
@@ -144,6 +144,82 @@ fun installArtifact(
     )
 }
 
+fun installResolvedExternalArtifacts(
+    repoDir: java.io.File,
+    configuration: Configuration,
+) {
+    val artifactComponents = mutableSetOf<String>()
+    configuration.incoming.artifacts.artifacts.forEach { artifact ->
+        val componentId = artifact.id.componentIdentifier as? ModuleComponentIdentifier ?: return@forEach
+        artifactComponents += componentId.mavenKey()
+        val artifactDir = repoDir.mavenArtifactDir(componentId.group, componentId.module, componentId.version)
+        artifactDir.mkdirs()
+        val targetFile = artifactDir.resolve(artifact.file.name)
+        artifact.file.copyTo(targetFile, overwrite = true)
+        if (artifact.file.extension == "jar") {
+            val defaultJar = artifactDir.resolve("${componentId.module}-${componentId.version}.jar")
+            if (targetFile.name != defaultJar.name) {
+                artifact.file.copyTo(defaultJar, overwrite = true)
+            }
+        }
+    }
+
+    configuration.incoming.resolutionResult.allComponents
+        .mapNotNull { component ->
+            val componentId = component.id as? ModuleComponentIdentifier ?: return@mapNotNull null
+            val moduleDependencies = component.dependencies
+                .mapNotNull { it as? ResolvedDependencyResult }
+                .filterNot { it.isConstraint }
+                .mapNotNull { it.selected.id as? ModuleComponentIdentifier }
+                .distinctBy { it.mavenKey() }
+                .map { Triple(it.group, it.module, it.version) }
+            componentId to moduleDependencies
+        }
+        .distinctBy { (componentId, _) -> componentId.mavenKey() }
+        .forEach { (componentId, moduleDependencies) ->
+            installExternalPom(
+                repoDir = repoDir,
+                groupId = componentId.group,
+                artifactId = componentId.module,
+                version = componentId.version,
+                packaging = if (componentId.mavenKey() in artifactComponents) "jar" else "pom",
+                moduleDependencies = moduleDependencies,
+            )
+        }
+}
+
+fun installExternalPom(
+    repoDir: java.io.File,
+    groupId: String,
+    artifactId: String,
+    version: String,
+    packaging: String,
+    moduleDependencies: List<Triple<String, String, String>>,
+) {
+    val artifactDir = repoDir.mavenArtifactDir(groupId, artifactId, version)
+    artifactDir.mkdirs()
+    val depsXml = moduleDependencies.joinToString("\n") { (g, a, v) ->
+        """  <dependency>
+    <groupId>$g</groupId>
+    <artifactId>$a</artifactId>
+    <version>$v</version>
+  </dependency>"""
+    }
+    val depsBlock = if (moduleDependencies.isEmpty()) "" else "<dependencies>\n$depsXml\n</dependencies>"
+    artifactDir.resolve("$artifactId-$version.pom").writeText(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>$groupId</groupId>
+  <artifactId>$artifactId</artifactId>
+  <version>$version</version>
+  <packaging>$packaging</packaging>
+  $depsBlock
+</project>
+""",
+    )
+}
+
 fun installPluginMarker(
     repoDir: java.io.File,
     pluginId: String,
@@ -175,6 +251,13 @@ fun installPluginMarker(
 """,
     )
 }
+
+fun java.io.File.mavenArtifactDir(groupId: String, artifactId: String, version: String): java.io.File =
+    resolve(groupId.replace('.', '/'))
+        .resolve(artifactId)
+        .resolve(version)
+
+fun ModuleComponentIdentifier.mavenKey(): String = "$group:$module:$version"
 
 tasks.test {
     dependsOn(installTestArtifacts)
