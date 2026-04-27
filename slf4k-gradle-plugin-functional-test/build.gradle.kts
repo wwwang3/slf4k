@@ -152,8 +152,7 @@ fun installPluginMarker(
     version: String,
 ) {
     val markerArtifactId = "$pluginId.gradle.plugin"
-    val markerGroupId = pluginId
-    val markerDir = repoDir.resolve(markerGroupId.replace('.', '/'))
+    val markerDir = repoDir.resolve(pluginId.replace('.', '/'))
         .resolve(markerArtifactId)
         .resolve(version)
     markerDir.mkdirs()
@@ -161,7 +160,7 @@ fun installPluginMarker(
         """<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>$markerGroupId</groupId>
+  <groupId>$pluginId</groupId>
   <artifactId>$markerArtifactId</artifactId>
   <version>$version</version>
   <packaging>pom</packaging>

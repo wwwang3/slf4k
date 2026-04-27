@@ -67,6 +67,7 @@ class Slf4kGradlePluginFunctionalTest {
             .withProjectDir(projectDir)
             .withGradleDistribution(URI(gradleDistributionUri))
             .withTestKitDir(File(testKitDir))
+            .withEnvironment(gradleEnvironment())
             .withArguments(*testArguments(args))
             .forwardOutput()
             .build()
@@ -76,12 +77,27 @@ class Slf4kGradlePluginFunctionalTest {
             .withProjectDir(projectDir)
             .withGradleDistribution(URI(gradleDistributionUri))
             .withTestKitDir(File(testKitDir))
+            .withEnvironment(gradleEnvironment())
             .withArguments(*testArguments(args))
             .forwardOutput()
             .buildAndFail()
 
     private fun testArguments(args: Array<out String>): Array<String> =
         (listOf("--offline", "--console=plain") + args.toList()).toTypedArray()
+
+    private fun gradleEnvironment(): Map<String, String> =
+        System.getenv().toMutableMap().apply {
+            this["GRADLE_OPTS"] = appendJvmArg(this["GRADLE_OPTS"], "--enable-native-access=ALL-UNNAMED")
+        }
+
+    private fun appendJvmArg(existing: String?, arg: String): String {
+        val current = existing.orEmpty().trim()
+        return when {
+            current.isEmpty() -> arg
+            current.contains(arg) -> current
+            else -> "$current $arg"
+        }
+    }
 
     private fun writeSettings() {
         val repoUri = File(testMavenRepo).toURI().toString()

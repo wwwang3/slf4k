@@ -21,6 +21,7 @@ kotlin {
 tasks.withType<Test>().configureEach {
     // Configure all test Gradle tasks to use JUnitPlatform.
     useJUnitPlatform()
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 
     // Log information about all test results, not only the failed ones.
     testLogging {

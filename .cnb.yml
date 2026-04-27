@@ -1,0 +1,52 @@
+.gradle-check: &gradle-check
+  docker:
+    image: eclipse-temurin:25-jdk
+    volumes:
+      - main:/root/.gradle:copy-on-write
+  stages:
+    - name: prepare
+      script:
+        - chmod +x ./gradlew
+        - java -version
+        - ./gradlew --no-daemon --version
+    - name: check
+      script: ./gradlew --no-daemon check
+
+.gradle-pr-check: &gradle-pr-check
+  <<: *gradle-check
+  docker:
+    image: eclipse-temurin:25-jdk
+    volumes:
+      - main:/root/.gradle:copy-on-write-read-only
+
+.gradle-publish: &gradle-publish
+  <<: *gradle-check
+  imports:
+    - https://cnb.cool/wwang3/configs/-/blob/main/token.yml
+  stages:
+    - name: prepare
+      script:
+        - chmod +x ./gradlew
+        - java -version
+        - ./gradlew --no-daemon --version
+    - name: check
+      script: ./gradlew --no-daemon check
+    - name: publish
+      script: |
+        set -eu
+        if [ -z "${CNB_OI_TOKEN:-}" ]; then
+          echo "CNB_OI_TOKEN is required. Import it from https://cnb.cool/wwang3/configs/-/blob/main/token.yml."
+          exit 1
+        fi
+        ./gradlew --no-daemon publishAllPublicationsToWang3Repository
+
+"$":
+  push:
+    - name: gradle-check
+      <<: *gradle-check
+  pull_request:
+    - name: gradle-pr-check
+      <<: *gradle-pr-check
+  tag_push:
+    - name: gradle-publish
+      <<: *gradle-publish
