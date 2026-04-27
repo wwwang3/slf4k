@@ -9,8 +9,8 @@ dependencies {
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib"))
     implementation(project(":slf4k-annotations"))
-    implementation(libs.slf4jApi)
-    implementation(libs.slf4jSimple)
+    implementation(libs.slf4j.api)
+    implementation(libs.slf4j.simple)
     implementation(kotlin("test"))
 }
 

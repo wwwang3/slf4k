@@ -5,12 +5,8 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         // 与主构建一致：允许 -Pkotlin.version=2.4.0-dev-XXXX 时 buildSrc 也能从 JetBrains dev 仓库解析 KGP
-        maven {
-            setUrl("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/")
-            content {
-                includeGroupByRegex("org\\.jetbrains\\.kotlin(\\..*)?")
-            }
-        }
+        maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/")
+        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
     }
 
     // Reuse the version catalog from the main build.

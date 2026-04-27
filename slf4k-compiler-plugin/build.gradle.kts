@@ -5,17 +5,11 @@ plugins {
 
 description = "Kotlin compiler plugin for generating slf4j loggers from @Slf4K"
 
-// KEFS (Kotlin External FIR Support) 坐标规则：<idea-kotlinc-version>-<slf4kVersion>
-// 这样 KEFS 可以按当前 IDE 捆绑的 Kotlin 版本拉到匹配的编译器插件 jar。
-// `kotlin` 变量同时也是主构建 KGP 与 kotlin-compiler-embeddable 的版本，
-// 三者始终一致，避免编译期 / 运行期 API drift。
-version = "${libs.versions.kotlin.get()}-${rootProject.version}"
 
 dependencies {
     compileOnly(project(":slf4k-annotations"))
-    compileOnly(libs.kotlinCompilerEmbeddable)
+    compileOnly(libs.kotlin.compiler)
 
     testImplementation(project(":slf4k-annotations"))
-    testImplementation(libs.kotlinCompilerEmbeddable)
     testImplementation(kotlin("test"))
 }

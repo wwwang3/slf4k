@@ -27,13 +27,8 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
-        // Kotlin dev 构建（如 2.4.0-dev-xxxx）不在 Maven Central，需要从 JetBrains dev 仓库解析
-        maven {
-            setUrl("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/")
-            content {
-                includeGroupByRegex("org\\.jetbrains\\.kotlin(\\..*)?")
-            }
-        }
+        maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/")
+        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
     }
 }
 

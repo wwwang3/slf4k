@@ -17,9 +17,9 @@ class Slf4kCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
-        val loggerName = configuration.get(Slf4kConfigurationKeys.loggerName)
+        val loggerName = configuration[Slf4kConfigurationKeys.loggerName]
             ?: Slf4kPluginMetadata.DEFAULT_LOGGER_NAME
-        val messageCollector = configuration.get(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
+        val messageCollector = configuration[CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY]
             ?: MessageCollector.NONE
         FirExtensionRegistrarAdapter.registerExtension(
             Slf4kFirExtensionRegistrar(loggerName, messageCollector)

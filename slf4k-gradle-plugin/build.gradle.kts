@@ -6,26 +6,19 @@ plugins {
 
 description = "Gradle plugin that wires the slf4k Kotlin compiler plugin into user builds"
 
-// Gradle 插件也采用 <kotlin>-<slf4k> 坐标，用户在 `plugins { id("top.wang3.slf4k") version "..." }`
-// 里直观看到插件适配的 Kotlin 版本。compiler-plugin 同规则。
-version = "${libs.versions.kotlin.get()}-${rootProject.version}"
-
 dependencies {
-    compileOnly(libs.kotlinGradlePluginApi)
+    compileOnly(libs.kotlin.gradle.plugin.api)
     implementation(project(":slf4k-compiler-plugin")) {
         isTransitive = false
     }
-
-    testImplementation(kotlin("test"))
 }
+
+val slf4kVersion = libs.versions.slf4k.get()
+val compilerPluginVersionValue = project.version.toString()
+val groupValue = project.group.toString()
 
 val generatePluginCoordinates by tasks.registering {
     val outDir = layout.buildDirectory.dir("generated/sources/slf4k-coordinates/kotlin")
-    val groupValue = project.group.toString()
-    // slf4kVersion: slf4k semver，用于 annotations 坐标注入（annotations 不走 KEFS 规则，单一 artifact）。
-    val slf4kVersion = rootProject.version.toString()
-    // compiler-plugin 用 KEFS 坐标规则发布：<kotlinVersion>-<slf4kVersion>
-    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$slf4kVersion"
     inputs.property("group", groupValue)
     inputs.property("slf4kVersion", slf4kVersion)
     inputs.property("compilerPluginVersion", compilerPluginVersionValue)
@@ -70,8 +63,8 @@ configurations[functionalTest.runtimeOnlyConfigurationName]
 dependencies {
     functionalTest.implementationConfigurationName(gradleTestKit())
     functionalTest.implementationConfigurationName(kotlin("test"))
-    functionalTest.implementationConfigurationName(libs.junitJupiter)
-    functionalTest.runtimeOnlyConfigurationName(libs.junitPlatformLauncher)
+    functionalTest.implementationConfigurationName(libs.junit.jupiter)
+    functionalTest.runtimeOnlyConfigurationName(libs.junit.platform.launcher)
 }
 
 gradlePlugin.testSourceSets(functionalTest)
@@ -91,12 +84,9 @@ val installTestArtifacts by tasks.registering {
     )
     outputs.dir(testMavenRepo)
     val groupValue = project.group.toString()
-    // slf4kVersion: annotations 的坐标版本（slf4k semver，跨 Kotlin 版本单一 artifact）
-    val slf4kVersion = rootProject.version.toString()
-    // gradle-plugin 自身的坐标版本，= <kotlin>-<slf4k>
+
     val pluginArtifactVersion = project.version.toString()
-    // compiler-plugin 走 KEFS 坐标：<kotlinVersion>-<slf4kVersion>（= pluginArtifactVersion）
-    val compilerPluginVersionValue = "${libs.versions.kotlin.get()}-$slf4kVersion"
+
     val repoDirProvider = testMavenRepo
     val annotationsJarProvider = annotationsJarTask.flatMap { it.archiveFile }
     val compilerJarProvider = compilerPluginJarTask.flatMap { it.archiveFile }
