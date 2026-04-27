@@ -6,6 +6,7 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.net.URI
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -17,6 +18,8 @@ class Slf4kGradlePluginFunctionalTest {
     private val slf4kVersion: String = requiredProperty("slf4k.version")
     private val kotlinVersion: String = requiredProperty("slf4k.kotlinVersion")
     private val slf4jVersion: String = requiredProperty("slf4k.slf4jVersion")
+    private val gradleDistributionUri: String = requiredProperty("slf4k.gradleDistributionUri")
+    private val testKitDir: String = requiredProperty("slf4k.testKitDir")
     private val testMavenRepo: String = requiredProperty("slf4k.testMavenRepo")
 
     @Test
@@ -62,16 +65,23 @@ class Slf4kGradlePluginFunctionalTest {
     private fun runGradle(vararg args: String): BuildResult =
         GradleRunner.create()
             .withProjectDir(projectDir)
-            .withArguments(*args)
+            .withGradleDistribution(URI(gradleDistributionUri))
+            .withTestKitDir(File(testKitDir))
+            .withArguments(*testArguments(args))
             .forwardOutput()
             .build()
 
     private fun runGradleAndFail(vararg args: String): BuildResult =
         GradleRunner.create()
             .withProjectDir(projectDir)
-            .withArguments(*args)
+            .withGradleDistribution(URI(gradleDistributionUri))
+            .withTestKitDir(File(testKitDir))
+            .withArguments(*testArguments(args))
             .forwardOutput()
             .buildAndFail()
+
+    private fun testArguments(args: Array<out String>): Array<String> =
+        (listOf("--offline", "--console=plain") + args.toList()).toTypedArray()
 
     private fun writeSettings() {
         val repoUri = File(testMavenRepo).toURI().toString()
@@ -198,6 +208,6 @@ class Slf4kGradlePluginFunctionalTest {
 
     private companion object {
         fun requiredProperty(key: String): String = System.getProperty(key)
-            ?: error("system property '$key' missing; run via :slf4k-gradle-plugin:functionalTest")
+            ?: error("system property '$key' missing; run via :slf4k-gradle-plugin-functional-test:test")
     }
 }

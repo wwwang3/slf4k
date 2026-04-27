@@ -10,7 +10,8 @@
 | --- | --- | --- |
 | `slf4k-annotations` | `@Slf4k` 注解定义 | 完成；锁 `languageVersion=KOTLIN_2_0` baseline，跨 Kotlin 2.x 单一 artifact |
 | `slf4k-compiler-plugin` | FIR + IR 编译期插件实现 | 可用（7 个集成测试通过） |
-| `slf4k-gradle-plugin` | Gradle 插件胶水层（`KotlinCompilerPluginSupportPlugin`） | 可用（2 个 GradleRunner 功能测试通过） |
+| `slf4k-gradle-plugin` | Gradle 插件胶水层（`KotlinCompilerPluginSupportPlugin`） | 可用；功能测试已提取到独立模块 |
+| `slf4k-gradle-plugin-functional-test` | Gradle 插件端到端功能测试（GradleRunner） | 可用（3 个 GradleRunner 功能测试） |
 | `slf4k-test` | 端到端测试样例 + 测试用例 | 7 个测试通过（`-Xplugin=` 直挂形态） |
 
 ## 最近一次迭代（Kotlin 版本与坐标规则重构）
@@ -31,8 +32,9 @@
 - `slf4k-gradle-plugin/build.gradle.kts`：
   - 新增顶层 `version = "${libs.versions.kotlin.get()}-${rootProject.version}"`，Gradle 插件坐标改为 `<kotlin>-<slf4k>` 格式（用户在 `plugins {}` 里看到适配的 Kotlin 版本）。
   - `generatePluginCoordinates` 拆三元：`slf4kVersion`（= `rootProject.version`，给 annotations 注入）/ `pluginArtifactVersion`（= `project.version`）/ `compilerPluginVersionValue`（KEFS 规则）。
-  - `installTestArtifacts` 同样拆分，annotations 按 `slf4kVersion` 安装，compiler-plugin 按 `compilerPluginVersionValue`，gradle-plugin + plugin marker 按 `pluginArtifactVersion`。
-  - `functionalTest` 的 `slf4k.version` system property 现在会自动取到 `<kotlin>-<slf4k>`，测试生成的 `build.gradle.kts` 里 `id("top.wang3.slf4k") version "2.3.0-0.0.1"` 自动正确。
+- `slf4k-gradle-plugin-functional-test/build.gradle.kts`：
+  - 承接原 GradleRunner 测试和 `installTestArtifacts`，annotations 按 `slf4kVersion` 安装，compiler-plugin / gradle-plugin / plugin marker 按 `<kotlin>-<slf4k>` 安装。
+  - `test` 的 `slf4k.version` system property 自动取到 `<kotlin>-<slf4k>`，测试生成的 `build.gradle.kts` 里 `id("top.wang3.slf4k") version "2.3.0-0.0.1"` 自动正确。
 - `slf4k-test/build.gradle.kts`：注释里的示例版本更新到 `2.3.0-0.0.1`；源码零改动，但重构后宿主 kotlinc（KGP = `kotlin`）与插件 KCE（= `kotlin`）自动对齐，消除原先 API drift。
 - `README.md`：接入示例改为 `id("top.wang3.slf4k") version "2.3.0-0.0.1"`；「坐标约定」段补 gradle-plugin 也走 `<kotlin>-<slf4k>`；「关键坐标」段重写；新增「多 Kotlin 版本支持」段说明 `-Pkotlin.version` 用法。
 
@@ -65,7 +67,7 @@ plugins {
 
 - `./gradlew help` → 发布坐标全部正确。
 - `./gradlew :slf4k-test:test` → 7/7 passed（4 PluginTest + 3 ExtendedPluginTest）。
-- `./gradlew :slf4k-gradle-plugin:functionalTest` → 2/2 passed；test maven repo 内含 4 个正确版本的 artifact + plugin marker。
+- `./gradlew :slf4k-gradle-plugin-functional-test:test` → 3/3 passed；test maven repo 内含 slf4k artifacts、plugin marker 与 slf4j 测试依赖。
 - `./gradlew :slf4k-annotations:publishToMavenLocal` 等 → `D:\Maven\maven-repository` 下发布四个 artifact 坐标正确；`slf4k-gradle-plugin-2.3.0-0.0.1.pom` 的运行时依赖指向 `slf4k-compiler-plugin:2.3.0-0.0.1`。
 - `-Pkotlin.version=X` 覆盖机制验证通过（override 成功透传到 KGP 解析、jar 产物命名、artifact 坐标）。
 

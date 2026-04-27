@@ -65,5 +65,5 @@ tasks.withType<KotlinCompile> {
  *     而 buildscript classpath 在配置阶段就要被解析，任务执行顺序解决不了。
  *
  * 外部真实工程不存在上述约束，直接走上面注释里的 plugins {} 方式即可。
- * Gradle 插件的端到端行为由 :slf4k-gradle-plugin:functionalTest（GradleRunner）验证。
+ * Gradle 插件的端到端行为由 :slf4k-gradle-plugin-functional-test:test（GradleRunner）验证。
  */

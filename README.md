@@ -33,6 +33,7 @@ class UserService {
 | `slf4k-annotations` | `@Slf4k` 注解定义 |
 | `slf4k-compiler-plugin` | FIR + IR 编译期插件实现 |
 | `slf4k-gradle-plugin` | Gradle 插件胶水层（`KotlinCompilerPluginSupportPlugin`） |
+| `slf4k-gradle-plugin-functional-test` | Gradle 插件端到端功能测试（GradleRunner） |
 
 ## 接入方式
 
@@ -138,7 +139,8 @@ Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-p
 ```bash
 ./gradlew build                              # 全量构建
 ./gradlew :slf4k-test:test                   # 编译器插件集成测试
-./gradlew :slf4k-gradle-plugin:check         # Gradle 插件 functionalTest（GradleRunner）
+./gradlew :slf4k-gradle-plugin:check         # Gradle 插件发布模块检查
+./gradlew :slf4k-gradle-plugin-functional-test:test  # Gradle 插件功能测试（GradleRunner）
 ```
 
 ## 多 Kotlin 版本支持

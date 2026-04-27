@@ -50,6 +50,7 @@ plugins {
 include(":slf4k-annotations")
 include(":slf4k-compiler-plugin")
 include(":slf4k-gradle-plugin")
+include(":slf4k-gradle-plugin-functional-test")
 include(":slf4k-test")
 
 rootProject.name = "slf4k"
