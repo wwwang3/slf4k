@@ -14,7 +14,7 @@ class Slf4kGradlePlugin : KotlinCompilerPluginSupportPlugin {
         target.extensions.create("slf4k", Slf4kExtension::class.java)
         target.dependencies.add(
             "implementation",
-            "${Slf4kPluginCoordinates.GROUP}:${Slf4kPluginMetadata.ANNOTATIONS_ARTIFACT_ID}:${Slf4kPluginCoordinates.VERSION}",
+            "${Slf4kPluginCoordinates.GROUP}:${Slf4kPluginMetadata.ANNOTATIONS_ARTIFACT_ID}:${Slf4kPluginCoordinates.COMPILER_PLUGIN_VERSION}",
         )
     }
 
