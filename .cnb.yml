@@ -38,7 +38,7 @@
           echo "CNB_OI_TOKEN is required. Import it from https://cnb.cool/wwang3/configs/-/blob/main/token.yml."
           exit 1
         fi
-        ./gradlew --no-daemon publishAllPublicationsToWang3Repository
+        ./gradlew --no-daemon publishAllPublicationsToCnbRepository
 
 include:
   - ".cnb/remote-dev.yml"
