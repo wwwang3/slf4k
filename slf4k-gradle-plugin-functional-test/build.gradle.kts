@@ -80,7 +80,7 @@ val installTestArtifacts by tasks.registering {
             repoDir = repoDir,
             groupId = groupValue,
             artifactId = "slf4k-annotations",
-            version = slf4kVersion,
+            version = compilerPluginVersionValue,
             jarFile = annotationsJarProvider.get().asFile,
         )
         installArtifact(
