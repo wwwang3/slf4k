@@ -1,11 +1,12 @@
 $:
   # vscode 事件：专供页面中启动远程开发用
   vscode:
-    - docker:
-        image: docker.cnb.cool/wwang3/remote-dev-backend:1.0.0
-        dockerUser: cnb
-        dockerPassword: ${CNB_API_TOKEN}
-      imports: https://cnb.cool/wwang3/configs/-/blob/main/token.yml
+    - imports: https://cnb.cool/wwang3/configs/-/blob/main/token.yml
+      docker:
+        image:
+          name: docker.cnb.cool/wwang3/remote-dev-backend:1.0.0
+          dockerUser: cnb
+          dockerPassword: ${CNB_API_TOKEN}
       env:
         GIT_CACHE_REPO: https://cnb.cool/wwang3/cnd-files.git
         GIT_USERNAME: $CNB_GIT_USER
@@ -21,8 +22,8 @@ $:
       stages:
         - name: set-env
           script: update_ssh_env.sh
-#        - name: cache-sync
-#          script: cache-sync.sh
+          #        - name: cache-sync
+          #          script: cache-sync.sh
           # type: vscode:go
         - name: set-token
           image: tencentcom/git-set-credential:latest
