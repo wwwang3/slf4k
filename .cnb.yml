@@ -29,6 +29,7 @@
         - chmod +x ./gradlew
         - java -version
         - ./gradlew --no-daemon --version
+        - chmod 755 ./.cnb/publish.sh
     - name: check
       script: ./gradlew --no-daemon check
     - name: publish
