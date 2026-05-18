@@ -60,8 +60,8 @@ class Slf4kIrTransformer(
                 val fromDeclarations = companion.declarations
                     .filterIsInstance<IrProperty>()
                     .mapNotNull { property -> property.backingField?.takeIf { it.name == loggerName } }
-                val fromReference = pluginContext
-                    .referenceProperties(CallableId(companion.classIdOrFail, loggerName))
+                val fromReference = pluginContext.finderForBuiltins()
+                    .findProperties(CallableId(companion.classIdOrFail, loggerName))
                     .mapNotNull { it.owner.backingField }
                 (fromDeclarations + fromReference).distinct()
             }

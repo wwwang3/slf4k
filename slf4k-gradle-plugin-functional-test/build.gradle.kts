@@ -35,9 +35,17 @@ val testExternalArtifacts by configurations.creating {
     isCanBeResolved = true
 }
 
+val testGradleEmbeddedArtifacts by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
     testExternalArtifacts("org.jetbrains.kotlin.jvm:org.jetbrains.kotlin.jvm.gradle.plugin:$kotlinVersion")
     testExternalArtifacts("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-build-tools-compat:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-build-tools-impl:$kotlinVersion")
+    testExternalArtifacts("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:$kotlinVersion")
     testExternalArtifacts("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     testExternalArtifacts("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testExternalArtifacts("org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion")
@@ -45,6 +53,7 @@ dependencies {
     testExternalArtifacts("org.junit.platform:junit-platform-launcher:$junitPlatformVersion")
     testExternalArtifacts("org.slf4j:slf4j-api:$slf4jVersion")
     testExternalArtifacts("org.slf4j:slf4j-simple:$slf4jVersion")
+    testGradleEmbeddedArtifacts("org.jetbrains.kotlin:kotlin-reflect:$embeddedKotlinVersion")
 }
 
 val annotationsJarTask = project(":slf4k-annotations").tasks.named<Jar>("jar")
@@ -59,8 +68,10 @@ val installTestArtifacts by tasks.registering {
         compilerPluginJarTask.flatMap { it.archiveFile },
         gradlePluginJarTask.flatMap { it.archiveFile },
         testExternalArtifacts,
+        testGradleEmbeddedArtifacts,
     )
     inputs.property("kotlinVersion", kotlinVersion)
+    inputs.property("gradleEmbeddedKotlinVersion", embeddedKotlinVersion)
     inputs.property("slf4jVersion", slf4jVersion)
     inputs.property("junitVersion", junitVersion)
     inputs.property("junitPlatformVersion", junitPlatformVersion)
@@ -76,6 +87,7 @@ val installTestArtifacts by tasks.registering {
         repoDir.deleteRecursively()
         repoDir.mkdirs()
         installResolvedExternalArtifacts(repoDir, testExternalArtifacts)
+        installResolvedExternalArtifacts(repoDir, testGradleEmbeddedArtifacts)
         installArtifact(
             repoDir = repoDir,
             groupId = groupValue,
@@ -168,11 +180,13 @@ fun installResolvedExternalArtifacts(
         .mapNotNull { component ->
             val componentId = component.id as? ModuleComponentIdentifier ?: return@mapNotNull null
             val moduleDependencies = component.dependencies
-                .mapNotNull { it as? ResolvedDependencyResult }
+                .asSequence()
+                .filterIsInstance<ResolvedDependencyResult>()
                 .filterNot { it.isConstraint }
                 .mapNotNull { it.selected.id as? ModuleComponentIdentifier }
                 .distinctBy { it.mavenKey() }
                 .map { Triple(it.group, it.module, it.version) }
+                .toList()
             componentId to moduleDependencies
         }
         .distinctBy { (componentId, _) -> componentId.mavenKey() }
@@ -189,7 +203,7 @@ fun installResolvedExternalArtifacts(
 }
 
 fun installExternalPom(
-    repoDir: java.io.File,
+    repoDir: File,
     groupId: String,
     artifactId: String,
     version: String,

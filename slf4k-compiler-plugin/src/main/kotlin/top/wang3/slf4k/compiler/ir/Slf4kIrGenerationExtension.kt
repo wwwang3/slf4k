@@ -27,7 +27,7 @@ class Slf4kIrGenerationExtension(
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
         if (!moduleFragment.hasSlf4kAnnotatedClass()) return
 
-        val loggerFactoryClass = pluginContext.referenceClass(Slf4KNames.loggerFactoryClassId)
+        val loggerFactoryClass = pluginContext.finderForBuiltins().findClass(Slf4KNames.loggerFactoryClassId)
             ?: return reportMissingDependency(Slf4KNames.loggerFactoryClassId.asSingleFqName().asString())
         // 选用 LoggerFactory.getLogger(String) 重载并以类 FQN 作为 category；
         // KClass.java 在新版 Kotlin stdlib 里是 inline 属性，无法通过 CallableId 稳定解析，
