@@ -6,7 +6,7 @@
 
 slf4k = "0.0.2"
 
-kotlin = "2.4.0-ij261-50"
+kotlin = "2.4.0"
 
 junit = "5.10.2"
 junit-platform = "1.10.2"
