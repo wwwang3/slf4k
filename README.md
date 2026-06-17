@@ -79,16 +79,6 @@ tasks.withType<KotlinCompile>().configureEach {
         )
     }
 }
-
-repositories {
-    maven {
-        setUrl("https://maven.cnb.cool/wwang3/maven-repository/-/packages/")
-        content {
-            includeGroup("top.wang3.slf4k")
-        }
-    }
-    mavenCentral()
-}
 ```
 
 ## IDE 支持（KEFS）
