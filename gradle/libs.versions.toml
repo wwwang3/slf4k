@@ -4,9 +4,9 @@
 
 [versions]
 
-slf4k = "0.0.2"
+slf4k = "0.0.3"
 
-kotlin = "2.4.0-ij261-71"
+kotlin = "2.4.20-dev-6724"
 
 junit = "5.10.2"
 junit-platform = "1.10.2"

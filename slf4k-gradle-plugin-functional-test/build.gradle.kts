@@ -22,7 +22,10 @@ val kotlinVersion = libs.versions.kotlin.get()
 val slf4jVersion = libs.versions.slf4j.get()
 val junitVersion = libsCatalog.findVersion("junit").get().requiredVersion
 val junitPlatformVersion = libsCatalog.findVersion("junit-platform").get().requiredVersion
-val gradleDistributionUri = "https://mirrors.cloud.tencent.com/gradle/gradle-9.4.0-all.zip"
+// 必须与 wrapper 版本一致: 预热仓库按宿主 Gradle 的 embeddedKotlinVersion 安装
+// kotlin-stdlib/kotlin-reflect, 若 sample 运行在其他版本的 Gradle 上, 其内嵌 Kotlin
+// 的 strictly 约束会指向未预热的版本, 导致 --offline 解析失败。
+val gradleDistributionUri = "https://mirrors.cloud.tencent.com/gradle/gradle-${gradle.gradleVersion}-all.zip"
 
 val groupValue = project.group.toString()
 val compilerPluginVersionValue = project(":slf4k-compiler-plugin").version.toString()
