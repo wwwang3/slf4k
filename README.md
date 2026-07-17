@@ -110,11 +110,11 @@ top.wang3.slf4k:slf4k-compiler-plugin:2.3.0-0.0.1
 top.wang3.slf4k:slf4k-gradle-plugin:2.3.0-0.0.1
 ```
 
-`slf4k-annotations` 是跨 Kotlin 版本的单一 artifact（`languageVersion=2.0` 锁 metadata baseline），
-不随 Kotlin 版本重发，坐标只有 slf4k semver：`top.wang3.slf4k:slf4k-annotations:0.0.1`。
-
 Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-plugin `SubpluginArtifact`
 版本指向 `<kotlin>-<slf4k>`，annotations 依赖指向 slf4k semver，用户 **无需** 手动改引用。
+
+### KEFS 插件配置
+![img.png](docs/images/img.png)
 
 ### 已知限制
 
