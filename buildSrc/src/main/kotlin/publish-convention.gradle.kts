@@ -97,7 +97,7 @@ val signingKeyId = providers
 signing {
     val isRequired = !version.toString().endsWith("-SNAPSHOT")
 
-    if (!signingKey.isNullOrBlank()) {
+    if (!signingKey.isNullOrBlank() && isRequired) {
         if (signingKeyId.isNullOrBlank()) {
             useInMemoryPgpKeys(signingKey, signingPassword)
         } else {

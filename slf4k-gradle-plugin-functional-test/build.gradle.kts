@@ -33,12 +33,12 @@ val gradlePluginVersionValue = project(":slf4k-gradle-plugin").version.toString(
 
 val testMavenRepo = layout.buildDirectory.dir("test-maven-repo")
 
-val testExternalArtifacts by configurations.creating {
+val testExternalArtifacts = configurations.create("testExternalArtifacts") {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
 
-val testGradleEmbeddedArtifacts by configurations.creating {
+val testGradleEmbeddedArtifacts = configurations.create("testGradleEmbeddedArtifacts") {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
@@ -63,7 +63,7 @@ val annotationsJarTask = project(":slf4k-annotations").tasks.named<Jar>("jar")
 val compilerPluginJarTask = project(":slf4k-compiler-plugin").tasks.named<Jar>("jar")
 val gradlePluginJarTask = project(":slf4k-gradle-plugin").tasks.named<Jar>("jar")
 
-val installTestArtifacts by tasks.registering {
+val installTestArtifacts = tasks.register("installTestArtifacts") {
     description = "Installs slf4k jars into a local maven repo for functional tests"
     dependsOn(annotationsJarTask, compilerPluginJarTask, gradlePluginJarTask)
     inputs.files(
