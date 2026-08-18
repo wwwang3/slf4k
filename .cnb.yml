@@ -37,7 +37,10 @@
       exports:
         stderr: ERROR_INFO
     - name: email-notify
-      image: docker.cnb.cool/wwang3/email-notification-plugin:0.0.1
+      image:
+        name: docker.cnb.cool/wwang3/email-notification-plugin:0.0.1
+        dockerUser: cnb
+        dockerPassword: ${CNB_OI_TOKEN}
       settings:
         username: ${NOTIFY_EMAIL_USER}
         password: ${NOTIFY_EMAIL_PASS}
@@ -48,7 +51,10 @@
         content: "success"
   failStages:
     - name: fail-email-notify
-      image: docker.cnb.cool/wwang3/email-notification-plugin:0.0.1
+      image:
+        name: docker.cnb.cool/wwang3/email-notification-plugin:0.0.1
+        dockerUser: cnb
+        dockerPassword: ${CNB_OI_TOKEN}
       settings:
         username: ${NOTIFY_EMAIL_USER}
         password: ${NOTIFY_EMAIL_PASS}
