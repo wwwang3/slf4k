@@ -17,7 +17,7 @@ val slf4kVersion = libs.versions.slf4k.get()
 val compilerPluginVersionValue = project.version.toString()
 val groupValue = project.group.toString()
 
-val generatePluginCoordinates by tasks.registering {
+val generatePluginCoordinates = tasks.register("generatePluginCoordinates") {
     description = "generate slf4k gradle plugin coordinates"
     val outDir = layout.buildDirectory.dir("generated/sources/slf4k-coordinates/kotlin")
     inputs.property("group", groupValue)

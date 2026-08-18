@@ -157,7 +157,6 @@ Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-p
 ```
 
 CI 矩阵可并行跑多个 `-Pkotlin.version=X` 产出多份 compiler-plugin / gradle-plugin artifact；
-`slf4k-annotations` 只需发一次（baseline 已锁到 Kotlin 2.0 metadata）。
 
 ## 关键坐标
 

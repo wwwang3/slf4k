@@ -34,6 +34,29 @@
       script: ./gradlew --no-daemon check
     - name: publish
       script: .cnb/publish.sh
+      exports:
+        stderr: ERROR_INFO
+    - name: email-notify
+      image: docker.cnb.cool/wwang3/email-notification-plugin:0.0.1
+      settings:
+        username: ${NOTIFY_EMAIL_USER}
+        password: ${NOTIFY_EMAIL_PASS}
+        host: ${NOTIFY_EMAIL_HOST}
+        port: ${NOTIFY_EMAIL_PORT}
+        receiver: ${NOTIFY_EMAIL_RECEIVER}
+        subject: "slf4k ci result"
+        content: "success"
+  failStages:
+    - name: fail-email-notify
+      image: docker.cnb.cool/wwang3/email-notification-plugin:0.0.1
+      settings:
+        username: ${NOTIFY_EMAIL_USER}
+        password: ${NOTIFY_EMAIL_PASS}
+        host: ${NOTIFY_EMAIL_HOST}
+        port: ${NOTIFY_EMAIL_PORT}
+        receiver: ${NOTIFY_EMAIL_RECEIVER}
+        subject: "sfl4k ci failed"
+        content: ${ERROR_INFO}"
 
 include:
   - ".cnb/remote-dev.yml"

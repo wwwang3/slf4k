@@ -121,13 +121,12 @@ class Slf4kLoggerDeclarationGenerationExtension(
     }
 
     private fun FirClassSymbol<*>.isSlf4KAnnotatedClass(): Boolean {
-        if (classKind != ClassKind.CLASS && classKind != ClassKind.ENUM_CLASS) return false
-        return session.predicateBasedProvider.matches(predicate, this)
+        return !(classKind != ClassKind.CLASS && classKind != ClassKind.ENUM_CLASS)
+                && session.predicateBasedProvider.matches(predicate, this)
     }
 
     private fun FirClassSymbol<*>.isSlf4KTargetCompanion(): Boolean {
-        if (!isCompanionObjectSymbol()) return false
-        return outerSlf4KClass() != null
+        return isCompanionObjectSymbol() && outerSlf4KClass() != null
     }
 
     private fun FirClassSymbol<*>.outerSlf4KClass(): FirClassSymbol<*>? {
