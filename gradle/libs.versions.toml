@@ -6,12 +6,12 @@
 
 slf4k = "0.0.3"
 
-kotlin = "2.4.20-ij262-52"
+kotlin = "2.4.20"
 
 junit = "5.10.2"
 junit-platform = "1.10.2"
 
-slf4j = "2.0.17"
+slf4j = "2.0.18"
 #
 maven-publish = "0.36.0"
 
