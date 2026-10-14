@@ -4,36 +4,27 @@ $:
     - imports: https://cnb.cool/wwang3/configs/-/blob/main/token.yml
       docker:
         image:
-          name: docker.cnb.cool/wwang3/remote-dev-backend:1.0.0
+          name: docker.cnb.cool/wwang3/remote-dev-backend:1.1.0
           dockerUser: cnb
           dockerPassword: ${CNB_API_TOKEN}
-      env:
-        GIT_CACHE_REPO: https://cnb.cool/wwang3/cnd-files.git
-        GIT_USERNAME: $CNB_GIT_USER
-        GIT_EMAIL: $CNB_GIT_EMAIL
-        GIT_AUTH_USER: cnb
-        GIT_AUTH_PASSWORD: $CNB_API_TOKEN
-        SYNC_DIRECTORIES: "idea-plugins:/root/.local/share/JetBrains/IntelliJIdea2026.1"
       runner:
         cpus: 16
       services:
         - vscode
         - docker
       stages:
-        - name: set-env
-          script: update_ssh_env.sh
-          #        - name: cache-sync
-          #          script: cache-sync.sh
-          # type: vscode:go
-        - name: set-token
+        - name: set-ssh-env
+          script: /usr/cnb/update_ssh_env.sh
+        - name: install-tool&restore-config
+          script: /usr/cnb/cnb.sh
+        - name: set-git
           image: tencentcom/git-set-credential:latest
           settings:
-            userName: ${GIT_USERNAME}
-            userEmail: ${GIT_EMAIL}
-            loginUserName: ${GIT_AUTH_USER}
-            loginPassword: ${GIT_AUTH_PASSWORD}
+            userName: ${CNB_GIT_USER}
+            userEmail: ${CNB_GIT_EMAIL}
+            loginUserName: ${CNB_GIT_USER}
+            loginPassword: ${CNB_API_TOKEN}
+        - name: install-ccstatusline
+          script: npm install -g ccstatusline-zh
         - name: vscode-go
           type: vscode:go
-#      endStages:
-#        - name: cache-push
-#          script: cache-push.sh

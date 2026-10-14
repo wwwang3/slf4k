@@ -1,0 +1,29 @@
+# remote dev config, not CI/CD config
+cnb:
+  remote_config_local_dir: /home/remote-config
+  remote_config_api_base: https://api.cnb.cool
+  remote_config_repo: wwang3/cnd-files
+  remote_config_api_token_env: REMOTE_CONFIG_API_TOKEN
+  remote_config_upload_interval: 10 # unit minutes
+  sync:
+    - name: common
+      remote_asset_name: common.tar.gz
+      sync_dir:
+        - src: idea-plugins/
+          dest: .local/share/JetBrains/IntelliJIdea2026.2/
+        - src: .gradle/gradle.properties
+        - src: .config/JetBrains/
+    - name: slf4k
+      remote_asset_name: slf4k.tar.gz
+      sync_dir:
+        - src: .codex/
+        - src: .claude/
+        - src: .agents/
+        - src: .claude.json
+          type: cp
+        - src: settings.local.json
+          dest: /workspace/.claude/settings.local.json
+          type: cp
+        - src: .dsh/.agent-presets/
+        - src: .dsh/settings.yaml
+        - src: .dsh/.credentials.yaml
