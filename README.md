@@ -54,8 +54,8 @@ object UserRegistry {
 
 ```kotlin
 plugins {
-    kotlin("jvm") version "2.3.0"
-    id("top.wang3.slf4k") version "2.3.0-0.0.1"
+    kotlin("jvm") version "2.4.20"
+    id("top.wang3.slf4k") version "2.4.20-0.0.4"
 }
 
 // 可选：覆盖生成的 logger 属性名，默认 "logger"
@@ -64,8 +64,8 @@ slf4k {
 }
 
 dependencies {
-    implementation("org.slf4j:slf4j-api:2.0.17")
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
+    implementation("org.slf4j:slf4j-api:2.0.18")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
     // slf4k-annotations 由 Gradle 插件自动注入到 implementation 配置，无需手写
 }
 ```
@@ -78,14 +78,14 @@ dependencies {
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 dependencies {
-    implementation("top.wang3.slf4k:slf4k-annotations:0.0.1")
-    implementation("org.slf4j:slf4j-api:2.0.17")
+    implementation("top.wang3.slf4k:slf4k-annotations:0.0.4")
+    implementation("org.slf4j:slf4j-api:2.0.18")
 }
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
-        // compiler-plugin 坐标是 <kotlinVersion>-<slf4kVersion>（KEFS 规则），例如 2.3.0-0.0.1
-        freeCompilerArgs.add("-Xplugin=/path/to/slf4k-compiler-plugin-2.3.0-0.0.1.jar")
+        // compiler-plugin 坐标是 <kotlinVersion>-<slf4kVersion>（KEFS 规则），例如 2.4.20-0.0.4
+        freeCompilerArgs.add("-Xplugin=/path/to/slf4k-compiler-plugin-2.4.20-0.0.4.jar")
         // 可选：自定义 logger 属性名
         freeCompilerArgs.addAll(
             "-P", "plugin:top.wang3.slf4k.compiler:logger-name=log",
@@ -118,9 +118,9 @@ Kotlin IDE 插件（2026.1 起）并没有对外稳定的 `firExtensionRegistrar
 ```
 top.wang3.slf4k:slf4k-compiler-plugin:<idea-kotlinc-version>-<slf4kVersion>
 top.wang3.slf4k:slf4k-gradle-plugin:<idea-kotlinc-version>-<slf4kVersion>
-# 例：Kotlin 2.3.0 + slf4k 0.0.1 →
-top.wang3.slf4k:slf4k-compiler-plugin:2.3.0-0.0.1
-top.wang3.slf4k:slf4k-gradle-plugin:2.3.0-0.0.1
+# 例：Kotlin 2.4.20 + slf4k 0.0.4 →
+top.wang3.slf4k:slf4k-compiler-plugin:2.4.20-0.0.4
+top.wang3.slf4k:slf4k-gradle-plugin:2.4.20-0.0.4
 ```
 
 Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-plugin `SubpluginArtifact`
@@ -170,7 +170,7 @@ Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-p
 
 ```bash
 ./gradlew :slf4k-compiler-plugin:build -Pkotlin.version=2.4.0-dev-2631
-# 产出 slf4k-compiler-plugin-2.4.0-dev-2631-0.0.1.jar
+# 产出 slf4k-compiler-plugin-2.4.0-dev-2631-0.0.4.jar
 ```
 
 CI 矩阵可并行跑多个 `-Pkotlin.version=X` 产出多份 compiler-plugin / gradle-plugin artifact；
@@ -178,11 +178,11 @@ CI 矩阵可并行跑多个 `-Pkotlin.version=X` 产出多份 compiler-plugin / 
 ## 关键坐标
 
 - group: `top.wang3.slf4k`
-- slf4k semver: `0.0.1`（= `slf4k-annotations` 版本、`<kotlin>-<slf4k>` 中的 `<slf4k>` 部分）
-- compiler-plugin 坐标: `slf4k-compiler-plugin:2.3.0-0.0.1`（KEFS 规则 `<kotlin>-<slf4k>`）
-- gradle-plugin 坐标: `slf4k-gradle-plugin:2.3.0-0.0.1`（同规则；`plugins {}` 里用户可见）
-- Kotlin: `2.3.0`（= IDE 捆绑 kotlinc 版本，可用 `-Pkotlin.version=X` 覆盖）
-- slf4j: `2.0.17`
+- slf4k semver: `0.0.4`（= `slf4k-annotations` 版本、`<kotlin>-<slf4k>` 中的 `<slf4k>` 部分）
+- compiler-plugin 坐标: `slf4k-compiler-plugin:2.4.20-0.0.4`（KEFS 规则 `<kotlin>-<slf4k>`）
+- gradle-plugin 坐标: `slf4k-gradle-plugin:2.4.20-0.0.4`（同规则；`plugins {}` 里用户可见）
+- Kotlin: `2.4.20`（= IDE 捆绑 kotlinc 版本，可用 `-Pkotlin.version=X` 覆盖）
+- slf4j: `2.0.18`
 - Gradle 插件 ID: `top.wang3.slf4k`
 - 编译器插件 ID: `top.wang3.slf4k.compiler`
 - CLI option: `logger-name`（必须是合法 Kotlin 标识符）
