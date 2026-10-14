@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.MessageCollectorAccess
 import org.jetbrains.kotlin.config.messageCollector
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrarAdapter
 import top.wang3.slf4k.compiler.fir.Slf4kFirExtensionRegistrar
@@ -18,8 +17,8 @@ class Slf4kCompilerPluginRegistrar : CompilerPluginRegistrar() {
 
     // 插件在 FIR/IR 阶段延迟报告消息, 无法改用 CompilerConfiguration.report(需要
     // KtSourcelessDiagnosticFactory 且 diagnosticsCollector 在 KEFS/测试通路下可能未初始化),
-    // 因此保留 MessageCollector 通道并显式 opt-in。
-    @OptIn(MessageCollectorAccess::class)
+    // 因此保留 MessageCollector 通道。Kotlin 2.4.0 的 messageCollector 不需要 opt-in
+    // (MessageCollectorAccess 标记是 2.4.20 才引入的)。
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         val loggerName = configuration[Slf4kConfigurationKeys.loggerName]
             ?: Slf4kPluginMetadata.DEFAULT_LOGGER_NAME
