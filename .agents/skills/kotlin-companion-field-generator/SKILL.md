@@ -421,7 +421,8 @@ class PluginDeclarationGenerationExtension(
     会让新建的 companion 没有 `<init>`，前端报构造器缺失。
 2.  **判定目标时必须限定 `classKind`。** 允许 `CLASS` 与 `ENUM_CLASS`；显式
     排除 `OBJECT`（object 无 companion 语义）和 `INTERFACE`（companion on
-    interface 语义不同）。
+    interface 语义不同）。若还想让 `object` 也长出字段，见下方
+    “变体：让 `object` 直接承载字段”——那是另一条目标路径，不能靠放宽这里实现。
 3.  **区分「自己生成的 companion」与「用户已写的 companion」。** 前者靠
     `FirDeclarationOrigin.Plugin.key == PluginDeclarationKey` 识别。
     只给前者生成默认构造器，否则会和用户自己的构造器打架。
@@ -678,6 +679,35 @@ fun `applies plugin and generates logger`() {
 | `CompilerConfigurationKey` 拿不到 value                   | `CompilerPluginRegistrar` 没从 configuration 读 key | 在 `registerExtensions` 里读并传给扩展构造器。                            |
 | 生成 companion 时 `FirConstructorSymbol` 缺失             | `getCallableNamesForClass` 没返回 `SpecialNames.INIT` 且 `generateConstructors` 返回空 | 给自己生成的 companion 同时登记 INIT + 生成默认构造器。 |
 | `object` / `interface` 也被误判进来                       | `isTargetAnnotated` 没限定 classKind           | 显式 `classKind == CLASS \|\| classKind == ENUM_CLASS`。                    |
+| object 上多出一个空 companion / 和 companion 版本重复生成 | 放宽了 `isTargetAnnotated` 而没有拆出 object 分支 | object 走“字段在自身成员上”，且 `isTargetObject` 要排除 `isCompanion`（见下方变体）。 |
+| 反射读 object 上的私有字段报 `Callable expects 0 arguments` | 用 `KProperty1.getter.call(instance)` 读 object 成员 | 直接 `kClass.java.getDeclaredField(name)` 取 backing field。                |
+
+---
+
+## 变体：让 `object` 直接承载字段
+
+`object` 没有（也不能有）companion object，所以它必须走另一条目标路径：字段直接生成在
+object 自身成员上。同一个 FIR/IR 扩展可以同时支持两种目标，改动点如下：
+
+| 位置                                       | 改动                                                                                                                     |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| 目标判定                                   | 拆成 `isCompanionHost`（`CLASS` / `ENUM_CLASS`）与 `isTargetObject`（`OBJECT && !isCompanion`），两者都要求谓词命中。   |
+| `getNestedClassifiersNames` / `generateNestedClassLikeDeclaration` | 只对 `isCompanionHost` 生效；object 绝不生成 companion。                                |
+| `getCallableNamesForClass`                 | object 目标返回 `setOf(fieldName)`，**不要**加 `SpecialNames.INIT`（object 的构造器由编译器提供）。                      |
+| `generateProperties`                       | 一段代码服务两个 owner：companion 目标取 `outerTargetClass()`，object 目标取自身；两者都用 `createMemberProperty(hasBackingField = true)`。 |
+| 冲突检测                                   | object 目标只查自身成员（`companionObjectSymbol()` 为 null）；语义与 class 一致，直接报 ERROR。                          |
+| IR `collectGeneratedFields`                | 除扫目标类 `declarations` 外，再用 `pluginContext.finderForBuiltins().findProperties(CallableId(targetClassId, name))` 兜底；`classId == null` 的局部类要跳过兜底，不要用 `classIdOrFail`。 |
+
+要点：
+
+-   **显式标注的 `companion object` 要忽略。** object 分支带上 `!isCompanion`，否则
+    `@Foo companion object` 会和“外层类承载字段”的路径重复生成同名属性。
+-   **初始化照旧交给 `IrField.initializer`。** JVM 下 object 的 `private val` 就是该单例类的
+    private static 字段，由后端编进 object 的 `<clinit>`，不要另写一套构造器赋值逻辑。
+-   **`data object` 的 `classKind` 同样是 `OBJECT`**，无需额外分支；嵌套 object 用
+    `kotlinFqName` 取点号分隔的 FQN 即可。
+-   **集成测试要覆盖**：顶层 object、`data object`、嵌套在 class 里的 object、嵌套在 object
+    里的 object，以及“object 不获得 companion”的断言。
 
 ---
 
@@ -694,7 +724,7 @@ fun `applies plugin and generates logger`() {
         `getNestedClassifiersNames`、`generateNestedClassLikeDeclaration`、
         `getCallableNamesForClass`、`generateConstructors`、`generateProperties`。
 -   [ ] 区分「插件新建 companion」vs「用户已有 companion」，仅前者发默认构造器。
--   [ ] classKind 限定 `CLASS` / `ENUM_CLASS`。
+-   [ ] classKind 限定 `CLASS` / `ENUM_CLASS`；若还支持 `object`，走独立的 object 分支（见变体一节）。
 -   [ ] 冲突检测去重 + 报 ERROR。
 -   [ ] IR 阶段只在**外部类**的 `visitClass` 里工作（`isCompanion` 早退）。
 -   [ ] `IrField.initializer` 设值；**不在**构造器里用 `irSetField`。

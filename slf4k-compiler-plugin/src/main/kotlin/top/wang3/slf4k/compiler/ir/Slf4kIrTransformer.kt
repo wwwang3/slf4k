@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
+import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.classIdOrFail
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.kotlinFqName
@@ -47,12 +48,20 @@ class Slf4kIrTransformer(
 
     @OptIn(UnsafeDuringIrConstructionAPI::class)
     private fun IrClass.collectGeneratedLoggerFields(loggerName: Name): List<IrField> {
+        val finder = pluginContext.finderForBuiltins()
         val ownPropertyBackings = declarations
             .filterIsInstance<IrProperty>()
             .mapNotNull { property -> property.backingField?.takeIf { it.name == loggerName } }
+        // object 直接在自身成员上承载 logger，与插件新建的 companion 一样可能在当前 IR 阶段
+        // 尚未落到 declarations 列表上，因此同样按 CallableId 走一次 reference 兜底。
+        // 局部类没有 ClassId（FIR 也不会为它生成 logger），跳过兜底而不是直接报错。
+        val ownReferenceBackings = classId
+            ?.let { classId -> finder.findProperties(CallableId(classId, loggerName)) }
+            .orEmpty()
+            .mapNotNull { it.owner.backingField }
         // 用户自定义 companion 里 FIR 生成的成员只出现在 declarations；插件新建的 companion
         // 在当前 IR 阶段对 getCallableNamesForClass 产出的成员尚未落到 declarations 列表上，
-        // 必须通过 referenceProperties 兜底拿到它的 backingField。
+        // 必须通过 reference 兜底拿到它的 backingField。
         val companionFields = declarations
             .filterIsInstance<IrClass>()
             .filter { it.isCompanion }
@@ -60,12 +69,13 @@ class Slf4kIrTransformer(
                 val fromDeclarations = companion.declarations
                     .filterIsInstance<IrProperty>()
                     .mapNotNull { property -> property.backingField?.takeIf { it.name == loggerName } }
-                val fromReference = pluginContext.finderForBuiltins()
+                val fromReference = finder
                     .findProperties(CallableId(companion.classIdOrFail, loggerName))
                     .mapNotNull { it.owner.backingField }
                 (fromDeclarations + fromReference).distinct()
             }
-        return (ownPropertyBackings + companionFields)
+        return (ownPropertyBackings + ownReferenceBackings + companionFields)
+            .distinct()
             .filter { field ->
                 val origin = field.correspondingPropertySymbol?.owner?.origin ?: field.origin
                 val plugin = origin as? IrDeclarationOrigin.GeneratedByPlugin ?: return@filter false

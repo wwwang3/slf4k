@@ -1,7 +1,7 @@
 # slf4k
 
-`slf4k` 是一个 Kotlin 编译器插件，通过 `@Slf4k` 注解自动为类生成 slf4j `Logger`，消除手写
-`private val logger = LoggerFactory.getLogger(Foo::class.java)` 的样板代码。
+`slf4k` 是一个 Kotlin 编译器插件，通过 `@Slf4k` 注解自动为类与 object 生成 slf4j `Logger`，
+消除手写 `private val logger = LoggerFactory.getLogger(Foo::class.java)` 的样板代码。
 
 ```kotlin
 import top.wang3.slf4k.Slf4k
@@ -10,6 +10,13 @@ import top.wang3.slf4k.Slf4k
 class UserService {
     fun greet(name: String) {
         logger.info("hello {}", name)   // logger 由插件在 companion object 上生成
+    }
+}
+
+@Slf4k
+object UserRegistry {
+    fun load() {
+        logger.info("loading")          // object 没有 companion，logger 直接生成在 object 自身
     }
 }
 ```
@@ -23,6 +30,12 @@ class UserService {
     companion object {
         private val logger: Logger = LoggerFactory.getLogger("com.example.UserService")
     }
+}
+
+object UserRegistry {
+    private val logger: Logger = LoggerFactory.getLogger("com.example.UserRegistry")
+
+    fun load() { logger.info("loading") }
 }
 ```
 
@@ -128,11 +141,15 @@ Gradle 插件在运行时会通过 `Slf4kPluginCoordinates` 自动把 compiler-p
 
 ## 行为细节
 
-- `@Slf4k` 仅对 `class` 与 `enum class` 生效；不支持 `object`、`interface`。
-- 若类本身或其 companion object 已经存在与 `loggerName` 同名的属性，插件会以 ERROR 终止
-  编译，避免静默覆盖。
-- 生成的 logger category 为被标注类的 Kotlin FQN（嵌套类使用点号分隔）。
-- 当用户已定义 companion object 时，插件只在已有 companion 上追加 logger 属性，不会替换它。
+- `@Slf4k` 对 `class`、`enum class` 与 `object`（含 `data object`、嵌套 object）生效；
+  不支持 `interface`、`annotation class` 以及显式标注的 `companion object`。
+- `class` / `enum class` 的 logger 生成在 companion object 上：缺失时自动生成 companion，
+  已有 companion 时只追加属性，不会替换它。`object` 的 logger 直接生成在 object 自身成员上，
+  且不会为 object 生成 companion。
+- 若目标自身（`class` 还包括其 companion object）已经存在与 `loggerName` 同名的属性，插件会以
+  ERROR 终止编译，避免静默覆盖。
+- 生成的 logger 为 `private val`，只能在被标注目标内部使用；category 为被标注目标的 Kotlin FQN
+  （嵌套类 / 嵌套 object 使用点号分隔，如 `com.example.Outer.Inner`）。
 
 ## 构建与测试
 

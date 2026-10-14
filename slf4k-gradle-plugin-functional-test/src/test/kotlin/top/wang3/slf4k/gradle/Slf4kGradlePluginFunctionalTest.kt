@@ -47,6 +47,18 @@ class Slf4kGradlePluginFunctionalTest {
     }
 
     @Test
+    fun `object sample carries the generated logger on the object itself`() {
+        writeSettings()
+        writeBuild(loggerName = null)
+        writeObjectSample(loggerFieldName = "logger")
+        writeObjectSampleTest(expectedFieldName = "logger", expectedLoggerName = "sample.ObjectSample")
+
+        val result = runGradle("test", "--stacktrace")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":test")?.outcome, result.output)
+    }
+
+    @Test
     fun `missing slf4j api fails with a clear diagnostic`() {
         writeSettings()
         writeBuild(loggerName = null, includeSlf4jApi = false)
@@ -58,6 +70,21 @@ class Slf4kGradlePluginFunctionalTest {
         assertTrue(
             result.output.contains("slf4k cannot generate logger") &&
                 result.output.contains("org.slf4j:slf4j-api"),
+            result.output,
+        )
+    }
+
+    @Test
+    fun `object declaring a member named like the logger fails with a clear diagnostic`() {
+        writeSettings()
+        writeBuild(loggerName = null)
+        writeConflictingObjectSample()
+
+        val result = runGradleAndFail("compileKotlin", "--stacktrace")
+
+        assertEquals(TaskOutcome.FAILED, result.task(":compileKotlin")?.outcome, result.output)
+        assertTrue(
+            result.output.contains("already declares a member named 'logger'"),
             result.output,
         )
     }
@@ -216,6 +243,73 @@ class Slf4kGradlePluginFunctionalTest {
                 @Test
                 fun sample_ping_runs_without_error() {
                     Sample().ping()
+                }
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun writeConflictingObjectSample() {
+        val dir = File(projectDir, "src/main/kotlin/sample").apply { mkdirs() }
+        File(dir, "ConflictSample.kt").writeText(
+            """
+            package sample
+
+            import org.slf4j.Logger
+            import top.wang3.slf4k.Slf4k
+
+            @Slf4k
+            object ConflictSample {
+                private val logger: Logger? = null
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun writeObjectSample(loggerFieldName: String) {
+        val dir = File(projectDir, "src/main/kotlin/sample").apply { mkdirs() }
+        File(dir, "ObjectSample.kt").writeText(
+            """
+            package sample
+
+            import top.wang3.slf4k.Slf4k
+
+            @Slf4k
+            object ObjectSample {
+                fun ping() {
+                    $loggerFieldName.info("ok")
+                }
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun writeObjectSampleTest(expectedFieldName: String, expectedLoggerName: String) {
+        val dir = File(projectDir, "src/test/kotlin/sample").apply { mkdirs() }
+        File(dir, "ObjectSampleTest.kt").writeText(
+            """
+            package sample
+
+            import org.slf4j.Logger
+            import kotlin.reflect.full.companionObject
+            import kotlin.test.Test
+            import kotlin.test.assertEquals
+            import kotlin.test.assertNotNull
+            import kotlin.test.assertNull
+
+            class ObjectSampleTest {
+                @Test
+                fun generated_logger_lives_on_the_object_itself() {
+                    assertNull(ObjectSample::class.companionObject, "object must not gain a companion object")
+                    val field = ObjectSample::class.java.getDeclaredField("$expectedFieldName")
+                    field.isAccessible = true
+                    val logger = assertNotNull(field.get(ObjectSample) as? Logger)
+                    assertEquals("$expectedLoggerName", logger.name)
+                }
+
+                @Test
+                fun object_ping_runs_without_error() {
+                    ObjectSample.ping()
                 }
             }
             """.trimIndent()

@@ -52,9 +52,10 @@ class Slf4kLoggerDeclarationGenerationExtension(
         classSymbol: FirClassSymbol<*>,
         context: NestedClassGenerationContext,
     ): Set<Name> {
-        if (!classSymbol.isSlf4KAnnotatedClass()) return emptySet()
-        if (!hasRequiredSlf4jApi(classSymbol)) return emptySet()
-        if (hasLoggerConflict(classSymbol)) return emptySet()
+        // 只有 class / enum class 需要（也允许）生成承载 logger 的 companion；
+        // object 把 logger 直接放进自身成员，interface 依旧不支持。
+        if (!classSymbol.isSlf4KCompanionHost()) return emptySet()
+        if (!canGenerateLogger(classSymbol)) return emptySet()
         if (classSymbol.companionObjectSymbol() != null) return emptySet()
         return setOf(SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT)
     }
@@ -65,9 +66,8 @@ class Slf4kLoggerDeclarationGenerationExtension(
         context: NestedClassGenerationContext,
     ): FirClassLikeSymbol<*>? {
         if (name != SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT) return null
-        if (!owner.isSlf4KAnnotatedClass()) return null
-        if (!hasRequiredSlf4jApi(owner)) return null
-        if (hasLoggerConflict(owner)) return null
+        if (!owner.isSlf4KCompanionHost()) return null
+        if (!canGenerateLogger(owner)) return null
         if (owner.companionObjectSymbol() != null) return null
         return createCompanionObject(owner, Slf4KDeclarationKey).symbol
     }
@@ -76,10 +76,9 @@ class Slf4kLoggerDeclarationGenerationExtension(
         classSymbol: FirClassSymbol<*>,
         context: MemberGenerationContext,
     ): Set<Name> {
-        if (!classSymbol.isSlf4KTargetCompanion()) return emptySet()
-        val outerClass = classSymbol.outerSlf4KClass() ?: return emptySet()
-        if (!hasRequiredSlf4jApi(outerClass)) return emptySet()
-        if (hasLoggerConflict(outerClass)) return emptySet()
+        val hostClass = classSymbol.loggerHostClass() ?: return emptySet()
+        if (!canGenerateLogger(hostClass)) return emptySet()
+        // 插件新建的 companion 需要额外登记默认构造器；用户已有 companion 与 object 由自身构造器负责。
         return if (classSymbol.isGeneratedSlf4KCompanion()) {
             setOf(loggerPropertyName, SpecialNames.INIT)
         } else {
@@ -101,11 +100,12 @@ class Slf4kLoggerDeclarationGenerationExtension(
     ): List<FirPropertySymbol> {
         val owner = context?.owner ?: return emptyList()
         if (callableId.callableName != loggerPropertyName) return emptyList()
-        if (!owner.isSlf4KTargetCompanion()) return emptyList()
-        val outerClass = owner.outerSlf4KClass() ?: return emptyList()
-        if (!hasRequiredSlf4jApi(outerClass)) return emptyList()
-        if (hasLoggerConflict(outerClass)) return emptyList()
+        val hostClass = owner.loggerHostClass() ?: return emptyList()
+        if (!canGenerateLogger(hostClass)) return emptyList()
 
+        // 属性在这里只声明签名，初始化表达式由 IR 阶段补写到 backing field 上：
+        // companion 上的 logger 在 JVM 下是外部类的 private static 字段，从 companion 的构造器赋值
+        // 会触发 IllegalAccessError；object 上的 logger 复用同一条路径，避免两套初始化逻辑。
         val property = createMemberProperty(
             owner = owner,
             key = Slf4KDeclarationKey,
@@ -120,9 +120,41 @@ class Slf4kLoggerDeclarationGenerationExtension(
         return listOf(property.symbol)
     }
 
-    private fun FirClassSymbol<*>.isSlf4KAnnotatedClass(): Boolean {
-        return !(classKind != ClassKind.CLASS && classKind != ClassKind.ENUM_CLASS)
-                && session.predicateBasedProvider.matches(predicate, this)
+    /**
+     * 判断被标注目标是否可以承载 logger，不可以时顺带报告一次诊断（消息去重）。
+     */
+    private fun canGenerateLogger(hostClass: FirClassSymbol<*>): Boolean {
+        return hasRequiredSlf4jApi(hostClass) && !hasLoggerConflict(hostClass)
+    }
+
+    /**
+     * 返回由该符号承载 logger 时的目标类：companion 取其外部被标注类，object 取自身。
+     *
+     * 返回 null 表示该符号不是 @Slf4k 的生成目标，包括不受支持的 interface、annotation class
+     * 以及显式标注的 companion object（其 logger 由外部类承载，重复生成会撞名）。
+     */
+    private fun FirClassSymbol<*>.loggerHostClass(): FirClassSymbol<*>? {
+        if (isSlf4KTargetCompanion()) return outerSlf4KClass()
+        if (isSlf4KTargetObject()) return this
+        return null
+    }
+
+    private fun FirClassSymbol<*>.isSlf4KAnnotated(): Boolean {
+        return session.predicateBasedProvider.matches(predicate, this)
+    }
+
+    /**
+     * 需要生成 companion 来承载 logger 的目标：class 与 enum class。
+     */
+    private fun FirClassSymbol<*>.isSlf4KCompanionHost(): Boolean {
+        return (classKind == ClassKind.CLASS || classKind == ClassKind.ENUM_CLASS) && isSlf4KAnnotated()
+    }
+
+    /**
+     * 直接在自身成员上承载 logger 的目标：object（含 data object 与嵌套 object）。
+     */
+    private fun FirClassSymbol<*>.isSlf4KTargetObject(): Boolean {
+        return classKind == ClassKind.OBJECT && !isCompanion && isSlf4KAnnotated()
     }
 
     private fun FirClassSymbol<*>.isSlf4KTargetCompanion(): Boolean {
@@ -133,7 +165,7 @@ class Slf4kLoggerDeclarationGenerationExtension(
         val outerClassId = classId.outerClassId ?: return null
         val outerClassSymbol = session.symbolProvider.getClassLikeSymbolByClassId(outerClassId) as? FirClassSymbol<*>
             ?: return null
-        return outerClassSymbol.takeIf { it.isSlf4KAnnotatedClass() }
+        return outerClassSymbol.takeIf { it.isSlf4KCompanionHost() }
     }
 
     @OptIn(DirectDeclarationsAccess::class)

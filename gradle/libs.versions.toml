@@ -4,7 +4,7 @@
 
 [versions]
 
-slf4k = "0.0.3"
+slf4k = "0.0.4"
 
 kotlin = "2.4.20"
 
