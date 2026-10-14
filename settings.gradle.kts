@@ -26,7 +26,9 @@ dependencyResolutionManagement {
                 }
             }
         }
-        mavenCentral()
+        // CI 机器 IP 被官方 maven 仓库拦截, 统一走阿里云公共仓库(代理 Maven Central), 不要再加回 mavenCentral()。
+        maven("https://maven.aliyun.com/repository/public/")
+        // IJ 捆绑版 kotlinc(如 2.4.20-ij262-52)没有发布到 Maven Central, 这两个 JetBrains 仓库必须保留。
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/")
         maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
     }
@@ -34,7 +36,9 @@ dependencyResolutionManagement {
 
 pluginManagement {
     repositories {
-        mavenCentral()
+        // 同 dependencyResolutionManagement: 不使用 mavenCentral, 走阿里云镜像;
+        // gradle-plugin 镜像代理 Gradle Plugin Portal, 排在最后仅作兜底。
+        maven("https://maven.aliyun.com/repository/public/")
         maven {
             setUrl("https://maven.aliyun.com/repository/gradle-plugin")
         }
